@@ -1,0 +1,11 @@
+{
+  "domain": "docbee",
+  "name": "DocBee",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/davidbreitung/your_DocBee_connect/blob/main/docs/HANDBUCH.md",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "version": "0.1.0"
+}
