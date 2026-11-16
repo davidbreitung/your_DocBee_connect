@@ -1,0 +1,5 @@
+# Tested together on Python 3.13. Runtime dependencies are supplied by Home Assistant.
+homeassistant==2025.6.3
+pytest-homeassistant-custom-component==0.13.254
+# aiodns 3.5 in this HA release requires the pre-5 pycares API.
+pycares==4.9.0

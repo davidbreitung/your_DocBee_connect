@@ -1,0 +1,39 @@
+{
+  "title": "DocBee",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DocBee connection",
+        "description": "Enter your DocBee instance URL and an access token with permission to read all users.",
+        "data": {
+          "url": "DocBee URL (HTTPS)",
+          "access_token": "Access token"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Renew DocBee access token",
+        "description": "Enter a valid access token with permission to read users.",
+        "data": {
+          "access_token": "Access token"
+        }
+      }
+    },
+    "error": {
+      "invalid_input": "Enter a valid HTTPS URL and a nonempty access token.",
+      "invalid_auth": "The access token is invalid, expired or lacks permission to read users.",
+      "cannot_connect": "Could not reach DocBee. Check the URL, network and TLS certificate.",
+      "invalid_response": "Unexpected or incomplete user response. Check the instance API format and pagination."
+    },
+    "abort": {
+      "already_configured": "This DocBee instance is already configured.",
+      "reauth_successful": "Access token updated."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "username": {
+        "name": "Username"
+      }
+    }
+  }
+}

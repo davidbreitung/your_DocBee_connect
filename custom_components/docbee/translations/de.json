@@ -1,0 +1,39 @@
+{
+  "title": "DocBee",
+  "config": {
+    "step": {
+      "user": {
+        "title": "DocBee-Verbindung",
+        "description": "Gib die URL deiner DocBee-Instanz und einen Access Token mit Leseberechtigung für alle Benutzer ein.",
+        "data": {
+          "url": "DocBee-URL (HTTPS)",
+          "access_token": "Access Token"
+        }
+      },
+      "reauth_confirm": {
+        "title": "DocBee-Access-Token erneuern",
+        "description": "Gib einen gültigen Access Token mit Leseberechtigung für Benutzer ein.",
+        "data": {
+          "access_token": "Access Token"
+        }
+      }
+    },
+    "error": {
+      "invalid_input": "Gib eine gültige HTTPS-URL und einen nicht leeren Access Token ein.",
+      "invalid_auth": "Der Access Token ist ungültig, abgelaufen oder hat keine Leseberechtigung für Benutzer.",
+      "cannot_connect": "DocBee ist nicht erreichbar. Prüfe URL, Netzwerk und TLS-Zertifikat.",
+      "invalid_response": "Unerwartete oder unvollständige Benutzerantwort. Prüfe API-Format und Seitennavigation der Instanz."
+    },
+    "abort": {
+      "already_configured": "Diese DocBee-Instanz ist bereits eingerichtet.",
+      "reauth_successful": "Access Token aktualisiert."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "username": {
+        "name": "Benutzername"
+      }
+    }
+  }
+}
