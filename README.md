@@ -10,6 +10,12 @@ authentifizierten DocBee-Instanz steht noch aus.
 - [Handbuch: Installation, Einrichtung, Funktionen und Fehlerbehebung](docs/HANDBUCH.md)
 - [PowerShell-Diagnose mit anonymisierter Ausgabe](scripts/Get-DocBeeApiSample.ps1)
 
+Installation über HACS / Marketplace: Dieses Repository über seinen GitHub-Link
+hinzufügen (Kategorie **Integration**, falls abgefragt), **DocBee** herunterladen
+und Home Assistant neu starten. Anschließend unter **Einstellungen → Geräte &
+Dienste → Integration hinzufügen → DocBee** einrichten. Die vollständigen Schritte
+stehen im Handbuch.
+
 Entwicklung (Python 3.13):
 
 ```sh

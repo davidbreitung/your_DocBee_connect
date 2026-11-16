@@ -18,6 +18,24 @@ Die Integration kann nur Benutzer sehen, auf die der Token Zugriff hat.
 
 ## Installation
 
+### Über HACS / Marketplace
+
+1. In HACS den Dialog zum Hinzufügen über einen GitHub-Link öffnen
+   (je nach Version unter „Benutzerdefinierte Repositories“).
+2. `https://github.com/davidbreitung/your_DocBee_connect` eintragen.
+   Falls eine Kategorie abgefragt wird, **Integration** auswählen.
+3. **DocBee** hinzufügen und herunterladen/installieren. Falls eine
+   Versionsauswahl erscheint, kann der Standardbranch **main** verwendet werden.
+4. Home Assistant neu starten.
+5. Unter **Einstellungen → Geräte & Dienste → Integration hinzufügen**
+   nach **DocBee** suchen und die Verbindung wie unten beschrieben einrichten.
+
+Das Repository enthält `hacs.json` im Stammverzeichnis; die Integration liegt
+unter `custom_components/docbee`. Wird weiterhin eine fehlende `hacs.json`
+gemeldet, den Hinzufügen-Dialog schließen, HACS neu laden und erneut versuchen.
+
+### Manuelle Installation
+
 1. Den Ordner `custom_components/docbee` aus diesem Repository nach
    `<Home-Assistant-Konfigurationsverzeichnis>/custom_components/docbee`
    kopieren. `manifest.json` muss direkt in diesem Zielordner liegen.
@@ -26,9 +44,9 @@ Die Integration kann nur Benutzer sehen, auf die der Token Zugriff hat.
    **DocBee** suchen. Falls sie nicht erscheint, den Browser neu laden und
    die Home-Assistant-Protokolle prüfen.
 
-Es ist keine YAML-Konfiguration nötig. Eine HACS-Installation ist derzeit
-nicht eingerichtet. Bei Updates den Integrationsordner durch die neue Version
-ersetzen und Home Assistant neu starten.
+Es ist keine YAML-Konfiguration nötig. Bei manuellen Updates den Integrationsordner
+durch die neue Version ersetzen und Home Assistant neu starten. Bei Installation
+über HACS können Aktualisierungen dort heruntergeladen werden.
 
 ## Verbindung bei der Ersteinrichtung
 
