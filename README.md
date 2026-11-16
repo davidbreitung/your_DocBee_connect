@@ -1,4 +1,4 @@
-# DocBee für Home Assistant
+# Your Docbee Connect für Home Assistant
 
 Custom Integration mit UI-Einrichtung per Access Token, einem virtuellen Gerät
 „Zentrale Konfiguration“ und einem Gerät samt Benutzername-Sensor je DocBee-Benutzer.
@@ -11,9 +11,9 @@ authentifizierten DocBee-Instanz steht noch aus.
 - [PowerShell-Diagnose mit anonymisierter Ausgabe](scripts/Get-DocBeeApiSample.ps1)
 
 Installation über HACS / Marketplace: Dieses Repository über seinen GitHub-Link
-hinzufügen (Kategorie **Integration**, falls abgefragt), **DocBee** herunterladen
+hinzufügen (Kategorie **Integration**, falls abgefragt), **Your Docbee Connect** herunterladen
 und Home Assistant neu starten. Anschließend unter **Einstellungen → Geräte &
-Dienste → Integration hinzufügen → DocBee** einrichten. Die vollständigen Schritte
+Dienste → Integration hinzufügen → Your Docbee Connect** einrichten. Die vollständigen Schritte
 stehen im Handbuch.
 
 Entwicklung (Python 3.13):

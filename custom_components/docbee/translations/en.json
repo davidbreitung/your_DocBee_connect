@@ -1,9 +1,9 @@
 {
-  "title": "DocBee",
+  "title": "Your Docbee Connect",
   "config": {
     "step": {
       "user": {
-        "title": "DocBee connection",
+        "title": "Your Docbee Connect",
         "description": "Enter your DocBee instance URL and an access token with permission to read all users.",
         "data": {
           "url": "DocBee URL (HTTPS)",

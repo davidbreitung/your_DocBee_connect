@@ -1,4 +1,4 @@
-# DocBee für Home Assistant – Handbuch
+# Your Docbee Connect für Home Assistant – Handbuch
 
 ## Stand und Voraussetzungen
 
@@ -24,11 +24,11 @@ Die Integration kann nur Benutzer sehen, auf die der Token Zugriff hat.
    (je nach Version unter „Benutzerdefinierte Repositories“).
 2. `https://github.com/davidbreitung/your_DocBee_connect` eintragen.
    Falls eine Kategorie abgefragt wird, **Integration** auswählen.
-3. **DocBee** hinzufügen und herunterladen/installieren. Falls eine
+3. **Your Docbee Connect** hinzufügen und herunterladen/installieren. Falls eine
    Versionsauswahl erscheint, kann der Standardbranch **main** verwendet werden.
 4. Home Assistant neu starten.
 5. Unter **Einstellungen → Geräte & Dienste → Integration hinzufügen**
-   nach **DocBee** suchen und die Verbindung wie unten beschrieben einrichten.
+   nach **Your Docbee Connect** suchen und die Verbindung wie unten beschrieben einrichten.
 
 Das Repository enthält `hacs.json` im Stammverzeichnis; die Integration liegt
 unter `custom_components/docbee`. Wird weiterhin eine fehlende `hacs.json`
@@ -41,19 +41,24 @@ gemeldet, den Hinzufügen-Dialog schließen, HACS neu laden und erneut versuchen
    kopieren. `manifest.json` muss direkt in diesem Zielordner liegen.
 2. Home Assistant neu starten.
 3. Unter **Einstellungen → Geräte & Dienste → Integration hinzufügen** nach
-   **DocBee** suchen. Falls sie nicht erscheint, den Browser neu laden und
+   **Your Docbee Connect** suchen. Falls sie nicht erscheint, den Browser neu laden und
    die Home-Assistant-Protokolle prüfen.
 
 Es ist keine YAML-Konfiguration nötig. Bei manuellen Updates den Integrationsordner
 durch die neue Version ersetzen und Home Assistant neu starten. Bei Installation
 über HACS können Aktualisierungen dort heruntergeladen werden.
 
+Die interne Integrationskennung und der Installationsordner heißen weiterhin
+`docbee`. Bestehende Geräte und Entitäten behalten ihre Identitäten. Bereits
+gespeicherte Eintragsnamen werden nicht überschrieben; einen bisherigen Namen
+„DocBee (URL)“ kannst du in Home Assistant bei Bedarf manuell umbenennen.
+
 ## Verbindung bei der Ersteinrichtung
 
 1. In DocBee einen Access Token erzeugen. Laut öffentlicher Dokumentation
    befindet sich diese Funktion beim Benutzericon unter
    **Einstellungen → Access Token**. Die Oberfläche kann versionsabhängig abweichen.
-2. Im DocBee-Einrichtungsdialog von Home Assistant die HTTPS-URL der Instanz
+2. Im Einrichtungsdialog von Your Docbee Connect von Home Assistant die HTTPS-URL der Instanz
    eingeben, zum Beispiel `https://firma.example`. Ein abschließendes `/restApi`
    wird automatisch entfernt. Installationen unter einem URL-Unterpfad sind möglich.
 3. Den Access Token in das verdeckte Feld eintragen und absenden.

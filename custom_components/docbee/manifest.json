@@ -1,6 +1,6 @@
 {
   "domain": "docbee",
-  "name": "DocBee",
+  "name": "Your Docbee Connect",
   "codeowners": [],
   "config_flow": true,
   "documentation": "https://github.com/davidbreitung/your_DocBee_connect/blob/main/docs/HANDBUCH.md",

@@ -46,7 +46,7 @@ class DocBeeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except DocBeeResponseError:
                 errors["base"] = "invalid_response"
             else:
-                return self.async_create_entry(title=f"DocBee ({url})", data=data)
+                return self.async_create_entry(title=f"Your Docbee Connect ({url})", data=data)
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
