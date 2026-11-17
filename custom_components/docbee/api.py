@@ -207,7 +207,20 @@ class DocBeeClient:
                     priority_values_valid = False
                 if priority in priority_one:
                     priority_count += 1
+        event_tickets: dict[str, str] | None = None
+        if priority_values_valid:
+            event_tickets = {}
+            if priority_one:
+                # Include closed tickets: closing/reopening must not look like a
+                # priority change, and priority changes on old tickets count too.
+                for row in await self._list(
+                    "ticket", "id,ticketNumber", {"priorityIds": ",".join(sorted(priority_one))}
+                ):
+                    number = row.get("ticketNumber")
+                    if not isinstance(number, str) or not number.strip() or len(number) > 255:
+                        raise DocBeeResponseError("Missing or invalid ticket number for priority events")
+                    event_tickets[str(row["id"])] = number
         return DocBeeSnapshot(
             users, queues, assigned, len(tickets),
-            priority_count if priority_values_valid else None,
+            priority_count if priority_values_valid else None, event_tickets,
         )

@@ -52,3 +52,4 @@ class DocBeeSnapshot:
     assigned_tickets: dict[str, int]
     open_tickets: int
     priority_one_tickets: int | None
+    priority_one_ticket_numbers: dict[str, str] | None = None

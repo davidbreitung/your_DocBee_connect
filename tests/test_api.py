@@ -136,13 +136,17 @@ async def test_snapshot_counts_responsible_users_queues_and_priority_value():
             {'id': 3, 'owner': 20, 'priority': 88},
             {'id': 4, 'owner': None, 'priority': None},
         ]),
+        resource_page('ticket', [{'id': 1, 'ticketNumber': 'V1'}, {'id': 3, 'ticketNumber': 'V3'}, {'id': 9, 'ticketNumber': 'V9'}]),
     )
     snapshot = await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
     assert snapshot.open_tickets == 4
     assert snapshot.priority_one_tickets == 2
     assert snapshot.assigned_tickets == {'1': 1, '20': 2}
     assert snapshot.queues['20'].name == 'Support'
-    call = session.get.call_args_list[-1]
+    assert snapshot.priority_one_ticket_numbers == {'1': 'V1', '3': 'V3', '9': 'V9'}
+    assert session.get.call_args.kwargs['params']['priorityIds'] == '77,88'
+    assert 'notClosed' not in session.get.call_args.kwargs['params']
+    call = session.get.call_args_list[3]
     assert call.args[0].endswith('/restApi/v1/ticket')
     assert call.kwargs['params']['notClosed'] == 'true'
     assert 'isLocked' not in call.kwargs['params']
@@ -197,7 +201,8 @@ async def test_invalid_enabled_status_is_not_coerced(enabled):
 async def test_priority_numeric_representations(value, expected):
     session = session_for(page([]), resource_page('queue', []),
         resource_page('priority', [{'id': 77, 'priority': value}]),
-        resource_page('ticket', [{'id': 1, 'owner': 20, 'priority': 77}]))
+        resource_page('ticket', [{'id': 1, 'owner': 20, 'priority': 77}]),
+        *([resource_page('ticket', [{'id': 1, 'ticketNumber': 'V1'}])] if expected else []))
     snapshot = await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
     assert snapshot.priority_one_tickets == expected
     assert snapshot.assigned_tickets == {'20': 1}
@@ -220,3 +225,13 @@ async def test_unknown_priority_reference_does_not_produce_false_zero():
     snapshot = await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
     assert snapshot.priority_one_tickets is None
     assert snapshot.open_tickets == 1
+
+
+@pytest.mark.parametrize('number', [None, '', 'x' * 256])
+async def test_priority_event_requires_a_real_ticket_number(number):
+    session = session_for(page([]), resource_page('queue', []),
+        resource_page('priority', [{'id': 77, 'priority': 100}]),
+        resource_page('ticket', []),
+        resource_page('ticket', [{'id': 1, 'ticketNumber': number}]))
+    with pytest.raises(DocBeeResponseError, match='ticket number'):
+        await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()

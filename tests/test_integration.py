@@ -54,7 +54,7 @@ async def test_devices_sensors_updates_and_unload(hass):
     central = registry.async_get_device(identifiers={central_identifier(entry.entry_id)})
     assert central.name == 'Zentrale Konfiguration'
     entities = er.async_get(hass)
-    assert len(er.async_entries_for_device(entities, central.id)) == 2
+    assert len(er.async_entries_for_device(entities, central.id)) == 4
     devices = dr.async_entries_for_config_entry(registry, entry.entry_id)
     assert len(devices) == 4
     assert len([d for d in devices if d.model == 'Benutzer']) == 2
@@ -183,3 +183,65 @@ async def test_group_migration_preserves_registry_ids_and_names(hass):
             assert device.config_entries_subentries[entry.entry_id] == {groups[kind]}
             for entity in er.async_entries_for_device(entities, device.id):
                 assert entity.config_subentry_id == groups[kind]
+
+
+async def test_priority_events_baseline_transitions_and_restore(hass):
+    from dataclasses import replace
+    from custom_components.docbee.const import EVENT_PRIORITY_ONE
+    from custom_components.docbee.groups import group_ids
+
+    def event_snapshot(numbers, total=5):
+        return replace(snapshot(), priority_one_ticket_numbers=numbers, open_tickets=total)
+
+    entry = MockConfigEntry(domain=DOMAIN, data=DATA, unique_id=DATA[CONF_URL])
+    entry.add_to_hass(hass)
+    events = []
+    unsubscribe = hass.bus.async_listen(EVENT_PRIORITY_ONE, lambda event: events.append(event.data))
+    initial = event_snapshot({'1': 'V1'})
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_snapshot', return_value=initial):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert events == []
+    entities = er.async_get(hass)
+    latest_id = entities.async_get_entity_id('sensor', DOMAIN, f'{entry.entry_id}:central:new_priority_one_ticket')
+    event_id = entities.async_get_entity_id('event', DOMAIN, f'{entry.entry_id}:central:priority_one_event')
+    assert hass.states.get(latest_id).state == 'unknown'
+    central = dr.async_get(hass).async_get_device(identifiers={central_identifier(entry.entry_id)})
+    assert entities.async_get(event_id).device_id == central.id
+    assert entities.async_get(event_id).config_subentry_id == group_ids(entry)['central']
+
+    coordinator = entry.runtime_data
+    # Newly created and reprioritized tickets both enter the same observed set.
+    coordinator.async_set_updated_data(event_snapshot({'1': 'V1', '2': 'V2', '3': 'V3'}))
+    await hass.async_block_till_done()
+    assert [e['ticket_number'] for e in events] == ['V2', 'V3']
+    assert all(e['device_id'] == central.id and e['config_entry_id'] == entry.entry_id for e in events)
+    assert hass.states.get(latest_id).state == 'V3'
+    assert hass.states.get(event_id).attributes['ticket_number'] == 'V3'
+    assert hass.states.get(event_id).attributes['event_type'] == 'priority_one_ticket'
+
+    # Repeated reads and closing/reopening do not produce new priority events.
+    coordinator.async_set_updated_data(event_snapshot({'1': 'V1', '2': 'V2', '3': 'V3'}, total=0))
+    await hass.async_block_till_done()
+    assert len(events) == 2
+    coordinator.async_set_update_error(DocBeeConnectionError())
+    coordinator.async_set_updated_data(event_snapshot(None))
+    await hass.async_block_till_done()
+    coordinator.async_set_updated_data(event_snapshot({'1': 'V1', '2': 'V2', '3': 'V3'}))
+    await hass.async_block_till_done()
+    assert len(events) == 2
+
+    # Leaving priority 1 and subsequently returning triggers again.
+    coordinator.async_set_updated_data(event_snapshot({'1': 'V1', '3': 'V3'}))
+    await hass.async_block_till_done()
+    final = event_snapshot({'1': 'V1', '2': 'V2', '3': 'V3'})
+    coordinator.async_set_updated_data(final)
+    await hass.async_block_till_done()
+    assert len(events) == 3
+    assert hass.states.get(latest_id).state == 'V2'
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_snapshot', return_value=final):
+        assert await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+    assert len(events) == 3
+    assert hass.states.get(latest_id).state == 'V2'
+    unsubscribe()

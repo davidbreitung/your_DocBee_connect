@@ -55,6 +55,21 @@
           "yes": "Yes",
           "no": "No"
         }
+      },
+      "new_priority_one_ticket": {
+        "name": "New priority 1 ticket"
+      }
+    },
+    "event": {
+      "priority_one_ticket": {
+        "name": "Priority 1 ticket event",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "priority_one_ticket": "New priority 1 ticket"
+            }
+          }
+        }
       }
     }
   }

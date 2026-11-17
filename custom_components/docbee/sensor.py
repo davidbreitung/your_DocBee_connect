@@ -3,6 +3,7 @@
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -10,6 +11,7 @@ from . import DocBeeConfigEntry
 from .coordinator import DocBeeCoordinator
 from .devices import central_device_info, queue_device_info, user_device_info
 from .groups import group_ids
+from .const import priority_event_signal
 
 
 async def async_setup_entry(
@@ -21,7 +23,7 @@ async def async_setup_entry(
     groups = group_ids(entry)
     async_add_entities([
         DocBeeSensor(coordinator, entry.entry_id, "central", None, key)
-        for key in ("open_tickets", "priority_one_tickets")
+        for key in ("open_tickets", "priority_one_tickets", "new_priority_one_ticket")
     ], config_subentry_id=groups["central"])
 
     @callback
@@ -67,6 +69,19 @@ class DocBeeSensor(CoordinatorEntity[DocBeeCoordinator], SensorEntity):
             self._attr_options = ["yes", "no"]
         self._attr_device_info = self._device_info()
 
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if self._key == "new_priority_one_ticket":
+            self.async_on_remove(async_dispatcher_connect(
+                self.hass, priority_event_signal(self._entry_id), self._priority_event,
+            ))
+
+    @callback
+    def _priority_event(self, payload: dict) -> None:
+        # Each notification is written even if multiple tickets arrive in one poll.
+        self.coordinator.last_priority_ticket_number = payload["ticket_number"]
+        self.async_write_ha_state()
+
     def _device_info(self) -> dict | None:
         if self._kind == "central":
             return central_device_info(self._entry_id)
@@ -88,6 +103,8 @@ class DocBeeSensor(CoordinatorEntity[DocBeeCoordinator], SensorEntity):
     @property
     def native_value(self) -> str | int | None:
         data = self.coordinator.data
+        if self._key == "new_priority_one_ticket":
+            return self.coordinator.last_priority_ticket_number
         if self._kind == "central":
             return getattr(data, self._key)
         if self._device_info() is None:

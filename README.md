@@ -6,6 +6,9 @@ Sensoren zählen nicht abgeschlossene Vorgänge je Verantwortlichem und Queue so
 insgesamt und mit Prioritätswert 100. Benutzername, Rolle und Aktiv-Status (Ja/Nein) sind eigene Entitäten.
 Die Integrationsansicht trennt die Geräte in die Bereiche **Zentrale Konfiguration**,
 **Benutzer** und **Queues**.
+Neu erkannte Prio-1-Vorgänge lösen ein Home-Assistant-Ereignis aus; die letzte
+Vorgangsnummer wird auf dem zentralen Gerät angezeigt. Die Erkennung erfolgt
+beim Fünf-Minuten-Abruf, mit Ausgangsbestand ohne Auslösung nach einem Neustart.
 
 **Entwicklungsstand:** Implementiert anhand der DocBee-OpenAPI-Spezifikation
 2026.2.0 und mit Home Assistant Core 2025.6.3 getestet. Ein Live-Test mit einer

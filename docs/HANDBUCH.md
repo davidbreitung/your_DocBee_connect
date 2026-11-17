@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.2.3 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.3.0 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -78,7 +78,7 @@ HTTP und Weiterleitungen werden nicht akzeptiert.
 
 | Typ | Gerätename | Modell | Entitäten |
 | --- | --- | --- | --- |
-| Zentrale Konfiguration | Zentrale Konfiguration | Zentrale Konfiguration | „Vorgänge offen“, „Vorgänge Prio 1“ |
+| Zentrale Konfiguration | Zentrale Konfiguration | Zentrale Konfiguration | „Vorgänge offen“, „Vorgänge Prio 1“, „Neuer Prio 1 Vorgang“, Ereignis „Prio 1 Vorgangsereignis“ |
 | Benutzer | Anzeigename (`name`) aus DocBee | Benutzer | „Benutzername“, „Rolle“, „Aktiv“, „Zugewiesene Vorgänge“ |
 | Queue | Queue-Name aus DocBee | Queues | „Aktuelle Tickets“ |
 
@@ -162,6 +162,88 @@ werden die Sensoren dagegen als nicht verfügbar markiert. Es gibt keinen Sensor
 „Vorgänge in Bearbeitung“. „Offene Tagesabschlüsse“ wurde auf Wunsch verworfen
 und wird nicht als Entität angelegt.
 
+## Ereignis bei neuen Prio-1-Vorgängen
+
+Auf **Zentrale Konfiguration** gibt es zusätzlich:
+
+- **Neuer Prio 1 Vorgang** (`sensor`): Vorgangsnummer des zuletzt gemeldeten
+  Prio-1-Vorgangs. Vor dem ersten Ereignis ist der Zustand unbekannt. Der letzte
+  Wert wird lokal gespeichert und nach einem Neustart oder Neuladen wiederhergestellt.
+- **Prio 1 Vorgangsereignis** (`event`): Zeitpunkt der letzten Erkennung;
+  Attribute enthalten `event_type`, `ticket_id`, `ticket_number`, `device_id`
+  und `config_entry_id`. Der Ereignistyp lautet `priority_one_ticket`.
+
+Zusätzlich wird auf dem Home-Assistant-Ereignisbus für jeden Treffer
+`docbee_priority_one_ticket` mit `ticket_id`, `ticket_number`, `device_id`
+und `config_entry_id` ausgelöst. `device_id` bezeichnet das zentrale Gerät.
+Die Vorgangsnummer ist die DocBee-Nummer (`ticketNumber`), nicht die interne ID.
+
+### Wann wird ausgelöst?
+
+Ein Ereignis entsteht, wenn ein Vorgang gegenüber dem vorherigen erfolgreichen
+Abruf neu zur Menge der Vorgänge mit Prioritätswert **100** gehört: durch
+Neuanlage oder durch eine nachträgliche Prioritätsänderung. Ein beobachteter
+Wechsel weg von Prio 1 und anschließend zurück löst erneut aus. Ein unverändert
+als Prio 1 geführter Vorgang wird nicht wiederholt gemeldet.
+
+Für diese Erkennung werden auch abgeschlossene Vorgänge berücksichtigt. Anders
+als die Ticketzähler prüft sie Prioritätsänderungen unabhängig vom Status;
+Schließen und Wiederöffnen allein lösen daher kein Ereignis aus. Die API wird
+zusätzlich mit `priorityIds` für alle Prioritäten mit Wert 100 und den Feldern
+`id,ticketNumber` abgefragt, einschließlich Seitennavigation.
+
+Bei mehreren Treffern werden einzelne Ereignisse in stabiler ID-Reihenfolge
+abgegeben. Die Textentität wird jeweils aktualisiert und behält die zuletzt
+verarbeitete Nummer. Die tatsächliche zeitliche Reihenfolge mehrerer Änderungen
+zwischen zwei Abrufen kann die Integration nicht rekonstruieren. Für
+Benachrichtigungen deshalb die Nummer aus den **Ereignisdaten** verwenden, nicht
+nachträglich den Textsensor auslesen.
+
+### Start, Ausfälle und Grenzen
+
+- Der erste gültige Abruf nach Einrichtung, Neustart oder Neuladen bildet nur
+  den Ausgangsbestand. Vorhandene Prio-1-Vorgänge lösen keine Ereignisflut aus.
+  Während Home Assistant ausgeschaltet war entstandene Ereignisse werden nicht
+  rückwirkend nachgeliefert. Die zuletzt gemeldete Nummer bleibt gespeichert.
+- Bei fehlgeschlagenen Abrufen oder ungültigen Prioritätsdaten wird kein
+  Ereignis erzeugt und der letzte gültige Vergleichsbestand nicht geleert.
+- Die Erkennung erfolgt beim regulären **Fünf-Minuten-Abruf**, nicht unmittelbar
+  bei einer Änderung in DocBee. Wechsel auf Prio 1 und zurück zwischen zwei
+  Abrufen können unentdeckt bleiben. Ein Webhook wäre für eine spätere sofortige
+  Erkennung eine mögliche Erweiterung, ist aber nicht Bestandteil dieser Version.
+- Maßgeblich bleiben die Sichtrechte des Tokens. Eine Änderung der Sichtrechte
+  kann bereits bestehende Tickets erstmals sichtbar machen und damit als neu
+  erkannte Prio-1-Vorgänge melden.
+- Der zuletzt gemeldete Wert wird mit kurzer Verzögerung und beim regulären
+  Entladen gespeichert. Bei einem abrupten Prozessabbruch unmittelbar nach dem
+  Ereignis kann die letzte Speicherung fehlen.
+
+### Beispielautomation
+
+Dieses Beispiel erzeugt eine Meldung in Home Assistant für jedes Ereignis,
+auch wenn mehrere Vorgänge beim selben Abruf erkannt werden:
+
+```yaml
+alias: Neuer DocBee Prio-1-Vorgang
+triggers:
+  - trigger: event
+    event_type: docbee_priority_one_ticket
+actions:
+  - action: persistent_notification.create
+    data:
+      title: "DocBee: Prio 1"
+      message: "Vorgang {{ trigger.event.data.ticket_number }} ist neu auf Prio 1."
+mode: queued
+max: 100
+```
+
+Bei mehreren DocBee-Verbindungen unter dem Trigger zusätzlich `event_data`
+mit der gewünschten `config_entry_id` oder der `device_id` des zentralen Geräts
+angeben. Die Werte sind in den Attributen der Ereignisentität oder in den
+Ereignisdaten unter den Entwicklerwerkzeugen sichtbar. Zum Testen dort auf
+`docbee_priority_one_ticket` lauschen, in DocBee einen Vorgang auf Prio 1 setzen
+und den nächsten Abruf abwarten.
+
 ## Aktualisierung und Lebenszyklus
 
 - Alle fünf Minuten wird ein vollständiger Datenstand aus Benutzern, Queues, Prioritäten und offenen Vorgängen abgefragt.
@@ -176,7 +258,7 @@ und wird nicht als Entität angelegt.
 - Neuladen der Integration startet den Abruf erneut. Entfernen der Integration
   entfernt ihre Zuordnung in Home Assistant; in DocBee werden keine Daten geändert.
 
-Die Integration verwendet ausschließlich GET-Anfragen. Sie verändert weder
+Die Integration verwendet gegenüber DocBee ausschließlich GET-Anfragen. Sie verändert weder
 Vorgänge noch Zuordnungen in DocBee.
 
 ## Token erneuern und Fehler beheben

@@ -55,6 +55,21 @@
           "yes": "Ja",
           "no": "Nein"
         }
+      },
+      "new_priority_one_ticket": {
+        "name": "Neuer Prio 1 Vorgang"
+      }
+    },
+    "event": {
+      "priority_one_ticket": {
+        "name": "Prio 1 Vorgangsereignis",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "priority_one_ticket": "Neuer Prio 1 Vorgang"
+            }
+          }
+        }
       }
     }
   }
