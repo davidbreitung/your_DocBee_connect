@@ -43,3 +43,11 @@ python3.13 -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
 .venv/bin/python -m pytest -q
 ```
+
+## Projektstandard und getrennte Handbücher
+
+- [Anforderungen](REQUIREMENTS.md) und [kompakter Projektstatus](STATUS.md)
+- [Benutzerhandbuch](docs/USER_MANUAL.md) – Bedienung und Anwenderhinweise
+- [Administrationshandbuch](docs/ADMIN_MANUAL.md) – Installation, Betrieb und Fehlerbehebung
+
+Das bisherige [ausführliche Handbuch](docs/HANDBUCH.md) und die projektspezifischen Codex-Anweisungen bleiben erhalten. Die Handbücher und der Projektstatus werden bei relevanten Codeänderungen mitgepflegt.
