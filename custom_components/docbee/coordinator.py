@@ -1,4 +1,4 @@
-"""Refresh DocBee users as an atomic snapshot."""
+"""Refresh DocBee users, queues and ticket counts as an atomic snapshot."""
 
 from datetime import timedelta
 import logging
@@ -10,13 +10,13 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .api import DocBeeAuthError, DocBeeClient, DocBeeError
 from .const import DOMAIN
-from .models import DocBeeUser
+from .models import DocBeeSnapshot
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class DocBeeCoordinator(DataUpdateCoordinator[dict[str, DocBeeUser]]):
-    """Poll all users every five minutes."""
+class DocBeeCoordinator(DataUpdateCoordinator[DocBeeSnapshot]):
+    """Poll DocBee data every five minutes."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, client: DocBeeClient) -> None:
         super().__init__(
@@ -29,9 +29,9 @@ class DocBeeCoordinator(DataUpdateCoordinator[dict[str, DocBeeUser]]):
         )
         self.client = client
 
-    async def _async_update_data(self) -> dict[str, DocBeeUser]:
+    async def _async_update_data(self) -> DocBeeSnapshot:
         try:
-            return await self.client.async_get_users()
+            return await self.client.async_get_snapshot()
         except DocBeeAuthError as err:
             raise ConfigEntryAuthFailed("DocBee access token or permissions invalid") from err
         except DocBeeError as err:

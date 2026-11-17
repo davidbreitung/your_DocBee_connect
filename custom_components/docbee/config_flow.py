@@ -20,13 +20,13 @@ from .const import DOMAIN
 
 
 class DocBeeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Validate the complete user read before saving a configuration."""
+    """Validate all required data reads before saving a configuration."""
 
     VERSION = 1
 
     async def _validate(self, data: dict[str, Any]) -> dict[str, str]:
         client = DocBeeClient(async_get_clientsession(self.hass), data[CONF_URL], data[CONF_ACCESS_TOKEN])
-        await client.async_get_users()
+        await client.async_get_snapshot()
         return {CONF_URL: client.url, CONF_ACCESS_TOKEN: data[CONF_ACCESS_TOKEN].strip()}
 
     async def async_step_user(self, user_input=None):

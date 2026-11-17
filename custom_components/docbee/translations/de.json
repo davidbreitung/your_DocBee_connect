@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Your Docbee Connect",
-        "description": "Gib die URL deiner DocBee-Instanz und einen Access Token mit Leseberechtigung für alle Benutzer ein.",
+        "description": "Gib die URL deiner DocBee-Instanz und einen Access Token mit Leseberechtigung für Benutzer, Queues, Prioritäten und Vorgänge ein.",
         "data": {
           "url": "DocBee-URL (HTTPS)",
           "access_token": "Access Token"
@@ -12,7 +12,7 @@
       },
       "reauth_confirm": {
         "title": "DocBee-Access-Token erneuern",
-        "description": "Gib einen gültigen Access Token mit Leseberechtigung für Benutzer ein.",
+        "description": "Gib einen gültigen Access Token mit Leseberechtigung für Benutzer, Queues, Prioritäten und Vorgänge ein.",
         "data": {
           "access_token": "Access Token"
         }
@@ -20,9 +20,9 @@
     },
     "error": {
       "invalid_input": "Gib eine gültige HTTPS-URL und einen nicht leeren Access Token ein.",
-      "invalid_auth": "Der Access Token ist ungültig, abgelaufen oder hat keine Leseberechtigung für Benutzer.",
+      "invalid_auth": "Der Access Token ist ungültig, abgelaufen oder hat keine benötigte Leseberechtigung.",
       "cannot_connect": "DocBee ist nicht erreichbar. Prüfe URL, Netzwerk und TLS-Zertifikat.",
-      "invalid_response": "Unerwartete oder unvollständige Benutzerantwort. Prüfe API-Format und Seitennavigation der Instanz."
+      "invalid_response": "Unerwartete oder unvollständige API-Antwort. Prüfe API-Format und Seitennavigation der Instanz."
     },
     "abort": {
       "already_configured": "Diese DocBee-Instanz ist bereits eingerichtet.",
@@ -33,6 +33,18 @@
     "sensor": {
       "username": {
         "name": "Benutzername"
+      },
+      "assigned_tickets": {
+        "name": "Zugewiesene Vorgänge"
+      },
+      "current_tickets": {
+        "name": "Aktuelle Tickets"
+      },
+      "open_tickets": {
+        "name": "Vorgänge offen"
+      },
+      "priority_one_tickets": {
+        "name": "Vorgänge Prio 1"
       }
     }
   }

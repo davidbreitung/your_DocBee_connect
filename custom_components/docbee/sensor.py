@@ -1,6 +1,6 @@
-"""One username sensor and virtual device per DocBee user."""
+"""User, queue and central sensors for Your Docbee Connect."""
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -8,61 +8,90 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import DocBeeConfigEntry
 from .coordinator import DocBeeCoordinator
-from .devices import user_device_info, username_unique_id
-from .models import DocBeeUser
+from .devices import central_device_info, queue_device_info, user_device_info
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: DocBeeConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Add initial users and discover users appearing on later refreshes."""
+    """Register central counters and discover user/queue devices on each update."""
     coordinator = entry.runtime_data
-    known: set[str] = set()
+    known: set[tuple[str, str]] = set()
+    async_add_entities([
+        DocBeeSensor(coordinator, entry.entry_id, "central", None, key)
+        for key in ("open_tickets", "priority_one_tickets")
+    ])
 
     @callback
-    def add_users() -> None:
+    def add_devices() -> None:
         entities = []
-        for user_id, user in coordinator.data.items():
-            if user_id not in known:
-                known.add(user_id)
-                entities.append(DocBeeUsernameSensor(coordinator, entry.entry_id, user))
+        for kind, records, keys in (
+            ("user", coordinator.data.users, ("username", "assigned_tickets")),
+            ("queue", coordinator.data.queues, ("current_tickets",)),
+        ):
+            for identifier in records:
+                if (kind, identifier) not in known:
+                    known.add((kind, identifier))
+                    entities.extend(DocBeeSensor(coordinator, entry.entry_id, kind, identifier, key) for key in keys)
         if entities:
             async_add_entities(entities)
 
-    add_users()
-    entry.async_on_unload(coordinator.async_add_listener(add_users))
+    add_devices()
+    entry.async_on_unload(coordinator.async_add_listener(add_devices))
 
 
-class DocBeeUsernameSensor(CoordinatorEntity[DocBeeCoordinator], SensorEntity):
-    """Expose the username; preserve identity through renames and outages."""
+class DocBeeSensor(CoordinatorEntity[DocBeeCoordinator], SensorEntity):
+    """Stable identities across display-name changes and temporarily missing data."""
 
     _attr_has_entity_name = True
-    _attr_translation_key = "username"
-    _attr_icon = "mdi:account"
 
-    def __init__(self, coordinator: DocBeeCoordinator, entry_id: str, user: DocBeeUser) -> None:
+    def __init__(self, coordinator: DocBeeCoordinator, entry_id: str, kind: str, identifier: str | None, key: str) -> None:
         super().__init__(coordinator)
-        self._user_id = user.id
         self._entry_id = entry_id
-        self._attr_unique_id = username_unique_id(entry_id, user.id)
-        self._attr_device_info = user_device_info(entry_id, user)
+        self._kind = kind
+        self._identifier = identifier
+        self._key = key
+        self._attr_translation_key = key
+        suffix = kind if identifier is None else f"{kind}:{identifier}"
+        self._attr_unique_id = f"{entry_id}:{suffix}:{key}"
+        self._attr_icon = "mdi:account" if key == "username" else "mdi:ticket-outline"
+        if key != "username":
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_device_info = self._device_info()
+
+    def _device_info(self) -> dict | None:
+        if self._kind == "central":
+            return central_device_info(self._entry_id)
+        if self._kind == "user":
+            if user := self.coordinator.data.users.get(self._identifier):
+                return user_device_info(self._entry_id, user)
+        elif queue := self.coordinator.data.queues.get(self._identifier):
+            return queue_device_info(self._entry_id, queue)
+        return None
 
     @property
     def available(self) -> bool:
-        return super().available and self._user_id in self.coordinator.data
+        if not super().available:
+            return False
+        return self._device_info() is not None
 
     @property
-    def native_value(self) -> str | None:
-        user = self.coordinator.data.get(self._user_id)
-        return user.username if user else None
+    def native_value(self) -> str | int | None:
+        data = self.coordinator.data
+        if self._kind == "central":
+            return getattr(data, self._key)
+        if self._device_info() is None:
+            return None
+        if self._key == "username":
+            return data.users[self._identifier].username
+        return data.assigned_tickets.get(self._identifier, 0)
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        if user := self.coordinator.data.get(self._user_id):
-            info = user_device_info(self._entry_id, user)
-            if info != self._attr_device_info:
-                self._attr_device_info = info
-                registry = dr.async_get(self.hass)
-                if device := registry.async_get_device(identifiers=info["identifiers"]):
-                    registry.async_update_device(device.id, name=user.username)
+        info = self._device_info()
+        if info is not None and info != self._attr_device_info:
+            self._attr_device_info = info
+            registry = dr.async_get(self.hass)
+            if device := registry.async_get_device(identifiers=info["identifiers"]):
+                registry.async_update_device(device.id, name=info["name"])
         super()._handle_coordinator_update()

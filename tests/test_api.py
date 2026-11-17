@@ -102,3 +102,67 @@ async def test_incomplete_or_inconsistent_pages(second):
     session = session_for(page([{'id': 1, 'username': 'alice'}], total=2), second)
     with pytest.raises(DocBeeResponseError):
         await DocBeeClient(session, 'https://example.com', 'secret').async_get_users()
+
+
+async def test_user_display_name_is_requested_and_parsed():
+    session = session_for(page([{'id': 1, 'username': 'alice', 'name': 'Alice Example'}]))
+    users = await DocBeeClient(session, 'https://example.com', 'secret').async_get_users()
+    assert session.get.call_args.kwargs['params']['fields'] == 'id,username,name'
+    assert users['1'].display_name == 'Alice Example'
+    assert users['1'].username == 'alice'
+
+
+@pytest.mark.parametrize('name', [None, '', ' '])
+async def test_missing_display_name_falls_back_to_username(name):
+    session = session_for(page([{'id': 1, 'username': 'alice', 'name': name}]))
+    users = await DocBeeClient(session, 'https://example.com', 'secret').async_get_users()
+    assert users['1'].display_name == 'alice'
+
+
+def resource_page(resource, rows, **kwargs):
+    result = page(rows, **kwargs)
+    result[resource] = result.pop('user')
+    return result
+
+
+async def test_snapshot_counts_responsible_users_queues_and_priority_value():
+    session = session_for(
+        page([{'id': 1, 'username': 'alice', 'name': 'Alice'}]),
+        resource_page('queue', [{'id': 20, 'name': 'Support'}]),
+        resource_page('priority', [{'id': 77, 'priority': 100}, {'id': 1, 'priority': 50}, {'id': 88, 'priority': 100}]),
+        resource_page('ticket', [
+            {'id': 1, 'owner': 1, 'priority': 77},
+            {'id': 2, 'owner': 20, 'priority': 1},
+            {'id': 3, 'owner': 20, 'priority': 88},
+            {'id': 4, 'owner': None, 'priority': None},
+        ]),
+    )
+    snapshot = await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
+    assert snapshot.open_tickets == 4
+    assert snapshot.priority_one_tickets == 2
+    assert snapshot.assigned_tickets == {'1': 1, '20': 2}
+    assert snapshot.queues['20'].name == 'Support'
+    call = session.get.call_args_list[-1]
+    assert call.args[0].endswith('/restApi/v1/ticket')
+    assert call.kwargs['params']['notClosed'] == 'true'
+    assert 'isLocked' not in call.kwargs['params']
+    assert call.kwargs['params']['fields'] == 'id,owner,priority'
+
+
+async def test_ticket_counts_include_every_page():
+    session = session_for(
+        page([]), resource_page('queue', []), resource_page('priority', []),
+        resource_page('ticket', [{'id': 1, 'owner': 20, 'priority': None}], total=2, limit=1),
+        resource_page('ticket', [{'id': 2, 'owner': 20, 'priority': None}], offset=1, total=2, limit=1),
+    )
+    snapshot = await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
+    assert snapshot.assigned_tickets == {'20': 2}
+    assert snapshot.open_tickets == 2
+    assert session.get.call_args.kwargs['params']['offset'] == 1
+
+
+@pytest.mark.parametrize('ticket', [{'id': 1}, {'id': 1, 'owner': {}, 'priority': 1}])
+async def test_invalid_ticket_does_not_produce_false_zero_counts(ticket):
+    session = session_for(page([]), resource_page('queue', []), resource_page('priority', []), resource_page('ticket', [ticket]))
+    with pytest.raises(DocBeeResponseError):
+        await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()

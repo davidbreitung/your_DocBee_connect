@@ -1,7 +1,9 @@
 # Your Docbee Connect für Home Assistant
 
 Custom Integration mit UI-Einrichtung per Access Token, einem virtuellen Gerät
-„Zentrale Konfiguration“ und einem Gerät samt Benutzername-Sensor je DocBee-Benutzer.
+„Zentrale Konfiguration“, Benutzergeräten mit Anzeigenamen und eigenen Queue-Geräten.
+Sensoren zählen nicht abgeschlossene Vorgänge je Verantwortlichem und Queue sowie
+insgesamt und mit Prioritätswert 100. Der Benutzername bleibt als eigene Entität erhalten.
 
 **Entwicklungsstand:** Implementiert anhand der DocBee-OpenAPI-Spezifikation
 2026.2.0 und mit Home Assistant Core 2025.6.3 getestet. Ein Live-Test mit einer

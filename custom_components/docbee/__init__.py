@@ -15,7 +15,7 @@ type DocBeeConfigEntry = ConfigEntry[DocBeeCoordinator]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: DocBeeConfigEntry) -> bool:
-    """Validate access, register the central device and load user sensors."""
+    """Validate access, register the central device and load sensors."""
     client = DocBeeClient(
         async_get_clientsession(hass), entry.data[CONF_URL], entry.data[CONF_ACCESS_TOKEN]
     )

@@ -5,7 +5,7 @@ devices, it does not yet have an entity that registers it automatically.
 """
 
 from .const import CENTRAL_DEVICE_NAME, DOMAIN, MANUFACTURER, USER_DEVICE_MODEL
-from .models import DocBeeUser
+from .models import DocBeeUser, DocBeeQueue
 
 
 def central_identifier(entry_id: str) -> tuple[str, str]:
@@ -31,7 +31,7 @@ def user_device_info(entry_id: str, user: DocBeeUser) -> dict:
     """
     return {
         "identifiers": {(DOMAIN, f"{entry_id}:user:{user.id}")},
-        "name": user.username,
+        "name": user.display_name,
         "manufacturer": MANUFACTURER,
         "model": USER_DEVICE_MODEL,
     }
@@ -40,3 +40,13 @@ def user_device_info(entry_id: str, user: DocBeeUser) -> dict:
 def username_unique_id(entry_id: str, user_id: str) -> str:
     """Keep the username entity identity stable when a user is renamed."""
     return f"{entry_id}:user:{user_id}:username"
+
+
+def queue_device_info(entry_id: str, queue: DocBeeQueue) -> dict:
+    """Classify queue devices separately from users."""
+    return {
+        "identifiers": {(DOMAIN, f"{entry_id}:queue:{queue.id}")},
+        "name": queue.name,
+        "manufacturer": MANUFACTURER,
+        "model": "Queues",
+    }

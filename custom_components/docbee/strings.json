@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Your Docbee Connect",
-        "description": "Enter your DocBee instance URL and an access token with permission to read all users.",
+        "description": "Enter your DocBee instance URL and an access token with permission to read users, queues, priorities and tickets.",
         "data": {
           "url": "DocBee URL (HTTPS)",
           "access_token": "Access token"
@@ -12,7 +12,7 @@
       },
       "reauth_confirm": {
         "title": "Renew DocBee access token",
-        "description": "Enter a valid access token with permission to read users.",
+        "description": "Enter a valid access token with permission to read users, queues, priorities and tickets.",
         "data": {
           "access_token": "Access token"
         }
@@ -20,9 +20,9 @@
     },
     "error": {
       "invalid_input": "Enter a valid HTTPS URL and a nonempty access token.",
-      "invalid_auth": "The access token is invalid, expired or lacks permission to read users.",
+      "invalid_auth": "The access token is invalid, expired or lacks permission to read users, queues, priorities and tickets.",
       "cannot_connect": "Could not reach DocBee. Check the URL, network and TLS certificate.",
-      "invalid_response": "Unexpected or incomplete user response. Check the instance API format and pagination."
+      "invalid_response": "Unexpected or incomplete API response. Check the instance API format and pagination."
     },
     "abort": {
       "already_configured": "This DocBee instance is already configured.",
@@ -33,6 +33,18 @@
     "sensor": {
       "username": {
         "name": "Username"
+      },
+      "assigned_tickets": {
+        "name": "Assigned tickets"
+      },
+      "current_tickets": {
+        "name": "Current tickets"
+      },
+      "open_tickets": {
+        "name": "Open tickets"
+      },
+      "priority_one_tickets": {
+        "name": "Priority 1 tickets"
       }
     }
   }

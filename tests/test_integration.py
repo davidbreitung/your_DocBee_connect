@@ -12,14 +12,18 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.docbee.api import DocBeeAuthError, DocBeeConnectionError, DocBeeResponseError
 from custom_components.docbee.const import DOMAIN
 from custom_components.docbee.devices import central_identifier, username_unique_id
-from custom_components.docbee.models import DocBeeUser
+from custom_components.docbee.models import DocBeeUser, DocBeeQueue, DocBeeSnapshot
 
 DATA = {CONF_URL: 'https://example.com', CONF_ACCESS_TOKEN: 'test-token'}
-USERS = {'1': DocBeeUser('1', 'alice'), '2': DocBeeUser('2', 'bob')}
+USERS = {'1': DocBeeUser('1', 'alice', 'Alice Example'), '2': DocBeeUser('2', 'bob')}
+
+
+def snapshot(users=USERS):
+    return DocBeeSnapshot(users, {'10': DocBeeQueue('10', 'Support')}, {'1': 2, '10': 3}, 5, 1)
 
 
 async def test_config_flow(hass):
-    with patch('custom_components.docbee.api.DocBeeClient.async_get_users', return_value=USERS), patch('custom_components.docbee.async_setup_entry', return_value=True):
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_snapshot', return_value=snapshot()), patch('custom_components.docbee.async_setup_entry', return_value=True):
         result = await hass.config_entries.flow.async_init(DOMAIN, context={'source': config_entries.SOURCE_USER})
         assert result['type'] is FlowResultType.FORM
         result = await hass.config_entries.flow.async_configure(result['flow_id'], DATA)
@@ -33,7 +37,7 @@ async def test_config_flow(hass):
 
 @pytest.mark.parametrize('error,expected', [(DocBeeAuthError(), 'invalid_auth'), (DocBeeConnectionError(), 'cannot_connect'), (DocBeeResponseError(), 'invalid_response')])
 async def test_flow_errors(hass, error, expected):
-    with patch('custom_components.docbee.api.DocBeeClient.async_get_users', side_effect=error):
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_snapshot', side_effect=error):
         result = await hass.config_entries.flow.async_init(DOMAIN, context={'source': config_entries.SOURCE_USER}, data=DATA)
     assert result['type'] is FlowResultType.FORM
     assert result['errors'] == {'base': expected}
@@ -43,33 +47,55 @@ async def test_flow_errors(hass, error, expected):
 async def test_devices_sensors_updates_and_unload(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=DATA, unique_id=DATA[CONF_URL])
     entry.add_to_hass(hass)
-    with patch('custom_components.docbee.api.DocBeeClient.async_get_users', return_value=USERS):
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_snapshot', return_value=snapshot()):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
     registry = dr.async_get(hass)
     central = registry.async_get_device(identifiers={central_identifier(entry.entry_id)})
     assert central.name == 'Zentrale Konfiguration'
     entities = er.async_get(hass)
-    assert not er.async_entries_for_device(entities, central.id)
+    assert len(er.async_entries_for_device(entities, central.id)) == 2
     devices = dr.async_entries_for_config_entry(registry, entry.entry_id)
-    assert len(devices) == 3
+    assert len(devices) == 4
     assert len([d for d in devices if d.model == 'Benutzer']) == 2
     alice_id = entities.async_get_entity_id('sensor', DOMAIN, username_unique_id(entry.entry_id, '1'))
     assert hass.states.get(alice_id).state == 'alice'
+    assert registry.async_get(entities.async_get(alice_id).device_id).name == 'Alice Example'
+    def state(suffix):
+        entity_id = entities.async_get_entity_id('sensor', DOMAIN, f'{entry.entry_id}:{suffix}')
+        return hass.states.get(entity_id).state
+    assert state('user:1:assigned_tickets') == '2'
+    assert state('user:2:assigned_tickets') == '0'
+    assert entities.async_get_entity_id('sensor', DOMAIN, f'{entry.entry_id}:user:1:open_daily_closings') is None
+    assert state('queue:10:current_tickets') == '3'
+    assert state('central:open_tickets') == '5'
+    assert state('central:priority_one_tickets') == '1'
+    assert len([d for d in devices if d.model == 'Queues']) == 1
     coordinator = entry.runtime_data
-    coordinator.async_set_updated_data({'1': DocBeeUser('1', 'renamed'), '3': DocBeeUser('3', 'carol')})
+    coordinator.async_set_updated_data(snapshot({'1': DocBeeUser('1', 'renamed', 'Alice Updated'), '3': DocBeeUser('3', 'carol')}))
     await hass.async_block_till_done()
     assert hass.states.get(alice_id).state == 'renamed'
     alice_device = registry.async_get(entities.async_get(alice_id).device_id)
-    assert alice_device.name == 'renamed'
+    assert alice_device.name == 'Alice Updated'
+    assert entities.async_get_entity_id('sensor', DOMAIN, username_unique_id(entry.entry_id, '1')) == alice_id
     bob_id = entities.async_get_entity_id('sensor', DOMAIN, username_unique_id(entry.entry_id, '2'))
     assert hass.states.get(bob_id).state == 'unavailable'
     carol_id = entities.async_get_entity_id('sensor', DOMAIN, username_unique_id(entry.entry_id, '3'))
     assert hass.states.get(carol_id).state == 'carol'
+    coordinator.async_set_updated_data(DocBeeSnapshot(USERS, {'10': DocBeeQueue('10', 'Support Updated'), '11': DocBeeQueue('11', 'New Queue')}, {'11': 4}, 4, 0))
+    await hass.async_block_till_done()
+    assert state('queue:10:current_tickets') == '0'
+    assert state('queue:11:current_tickets') == '4'
+    assert state('central:open_tickets') == '4'
+    queue_device = registry.async_get_device(identifiers={(DOMAIN, f'{entry.entry_id}:queue:10')})
+    assert queue_device.name == 'Support Updated'
+    coordinator.async_set_updated_data(snapshot())
+    await hass.async_block_till_done()
+    assert state('queue:11:current_tickets') == 'unavailable'
     coordinator.async_set_update_error(DocBeeConnectionError())
     await hass.async_block_till_done()
     assert hass.states.get(alice_id).state == 'unavailable'
-    coordinator.async_set_updated_data(USERS)
+    coordinator.async_set_updated_data(snapshot())
     await hass.async_block_till_done()
     assert hass.states.get(alice_id).state == 'alice'
     assert await hass.config_entries.async_unload(entry.entry_id)
@@ -80,7 +106,7 @@ async def test_devices_sensors_updates_and_unload(hass):
 async def test_reauthentication(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=DATA, unique_id=DATA[CONF_URL])
     entry.add_to_hass(hass)
-    with patch('custom_components.docbee.api.DocBeeClient.async_get_users', return_value={}), patch('custom_components.docbee.async_setup_entry', return_value=True):
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_snapshot', return_value=snapshot({})), patch('custom_components.docbee.async_setup_entry', return_value=True):
         result = await hass.config_entries.flow.async_init(DOMAIN, context={'source': config_entries.SOURCE_REAUTH, 'entry_id': entry.entry_id}, data=DATA)
         assert result['step_id'] == 'reauth_confirm'
         result = await hass.config_entries.flow.async_configure(result['flow_id'], {CONF_ACCESS_TOKEN: 'replacement-token'})

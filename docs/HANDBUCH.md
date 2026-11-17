@@ -2,8 +2,9 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.1.0 implementiert die Einrichtung über die Oberfläche, Geräte,
-Benutzername-Sensoren, regelmäßige Aktualisierung und Token-Erneuerung.
+Version 0.2.0 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
+und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
 Ältere Versionen werden nicht unterstützt; neuere Versionen wurden nicht separat getestet.
 
@@ -12,9 +13,10 @@ Die API-Anbindung folgt der öffentlich erreichbaren DocBee-OpenAPI-Spezifikatio
 Die Tests prüfen die dokumentierte Struktur mit simulierten API-Antworten.
 
 Benötigt werden eine per HTTPS erreichbare DocBee-Instanz mit gültigem
-TLS-Zertifikat und ein Access Token mit Leseberechtigung für alle gewünschten
-Benutzer. Home Assistant muss den Host der Instanz erreichen können.
-Die Integration kann nur Benutzer sehen, auf die der Token Zugriff hat.
+TLS-Zertifikat und ein Access Token mit Leseberechtigung für Benutzer, Queues,
+Prioritäten und Vorgänge. Home Assistant muss den Host der Instanz erreichen können.
+Alle Zähler beziehen sich auf die für den Token sichtbaren Vorgänge. Für
+instanzweite Gesamtzahlen benötigt der Token Zugriff auf alle Vorgänge.
 
 ## Installation
 
@@ -58,11 +60,11 @@ gespeicherte Eintragsnamen werden nicht überschrieben; einen bisherigen Namen
 1. In DocBee einen Access Token erzeugen. Laut öffentlicher Dokumentation
    befindet sich diese Funktion beim Benutzericon unter
    **Einstellungen → Access Token**. Die Oberfläche kann versionsabhängig abweichen.
-2. Im Einrichtungsdialog von Your Docbee Connect von Home Assistant die HTTPS-URL der Instanz
+2. Im Einrichtungsdialog von Your Docbee Connect in Home Assistant die HTTPS-URL der Instanz
    eingeben, zum Beispiel `https://firma.example`. Ein abschließendes `/restApi`
    wird automatisch entfernt. Installationen unter einem URL-Unterpfad sind möglich.
 3. Den Access Token in das verdeckte Feld eintragen und absenden.
-4. Die Integration prüft vor dem Speichern den Benutzerabruf einschließlich
+4. Die Integration prüft vor dem Speichern den Abruf von Benutzern, Queues, Prioritäten und Vorgängen einschließlich
    Seitennavigation. Bei Fehlern bleibt der Einrichtungsdialog offen.
 5. Eine bereits eingerichtete Instanz-URL wird als Duplikat erkannt.
 
@@ -76,14 +78,16 @@ HTTP und Weiterleitungen werden nicht akzeptiert.
 
 | Typ | Gerätename | Modell | Entitäten |
 | --- | --- | --- | --- |
-| Zentrale Konfiguration | Zentrale Konfiguration | Zentrale Konfiguration | Zunächst keine; werden später festgelegt |
-| Benutzer | Benutzername aus DocBee | Benutzer | Sensor „Benutzername“ mit dem Benutzernamen als Zustand |
+| Zentrale Konfiguration | Zentrale Konfiguration | Zentrale Konfiguration | „Vorgänge offen“, „Vorgänge Prio 1“ |
+| Benutzer | Anzeigename (`name`) aus DocBee | Benutzer | „Benutzername“, „Zugewiesene Vorgänge“ |
+| Queue | Queue-Name aus DocBee | Queues | „Aktuelle Tickets“ |
 
-Das zentrale Gerät wird ausdrücklich registriert, obwohl es keine Entitäten
-besitzt. Jeder Benutzer erhält ein eigenes virtuelles Gerät. Identitäten
-basieren auf Konfiguration und Benutzer-ID. Gleichnamige Benutzer bleiben
-getrennt; eine Umbenennung aktualisiert Zustand und Gerätenamen ohne neue
-Entität. Ein manuell vergebener Gerätename in Home Assistant bleibt erhalten.
+Das zentrale Gerät wird ausdrücklich registriert. Jeder Benutzer und jede Queue
+erhält ein eigenes virtuelles Gerät. Identitäten basieren auf Konfiguration,
+Gerätetyp und DocBee-ID. Gleichnamige Benutzer bleiben
+getrennt; Änderungen am Anzeigenamen aktualisieren den Gerätenamen, Änderungen am
+Benutzernamen den Sensorzustand. Es entstehen dabei keine neuen Entitäten.
+Fehlt der Anzeigename oder ist er leer, dient der Benutzername als Ersatz. Ein manuell vergebener Gerätename in Home Assistant bleibt erhalten.
 Home Assistant erzeugt die tatsächlichen `sensor.*`-Entitäts-IDs; es gibt
 keine fest vorgegebenen IDs. Sie können in der Entitätsverwaltung angepasst werden.
 
@@ -91,18 +95,40 @@ keine fest vorgegebenen IDs. Sie können in der Entitätsverwaltung angepasst we
 
 Home Assistant bietet keine frei definierbare Geräteklasse „Benutzer“ und
 keine von dieser Integration vorgegebene verschachtelte Geräteansicht.
-„Benutzer“ wird daher als **Gerätemodell** ausgewiesen, „Zentrale Konfiguration“
+„Benutzer“ und „Queues“ werden daher als **Gerätemodelle** ausgewiesen, „Zentrale Konfiguration“
 als separates Gerät. In der Geräteübersicht können die Geräte nach Integration
 und Modell gefiltert werden. Eine eigene visuelle Dashboard-Gruppe kann der
 Benutzer manuell mit den gewünschten Entitäten anlegen; die Integration legt
 keine Dashboard-Karten oder Home-Assistant-Gruppenhelfer an.
 
+### Bedeutung der Ticketzähler
+
+Alle Zähler berücksichtigen ausschließlich **nicht abgeschlossene Vorgänge**
+(`notClosed=true`). „Offen“ bedeutet hier nicht abgeschlossen und keinen
+bestimmten benannten Status. Auch pausierte, aber nicht geschlossene Vorgänge
+sind entsprechend der DocBee-Filtersemantik enthalten.
+
+- **Zugewiesene Vorgänge:** `owner` entspricht der Benutzer-ID, also dem Feld
+  „Verantwortlicher“. Der Sperrstatus `isLocked` spielt keine Rolle.
+- **Aktuelle Tickets:** `owner` entspricht der Queue-ID. Alle von der API
+  gelieferten Queues erhalten ein Gerät, auch solche ohne aktuelle Vorgänge.
+- **Vorgänge offen:** Gesamtzahl aller nicht abgeschlossenen sichtbaren Vorgänge,
+  einschließlich Vorgängen ohne Verantwortlichen.
+- **Vorgänge Prio 1:** Nicht abgeschlossene Vorgänge mit einer Priorität, deren
+  numerischer Prioritätswert **100** ist. Maßgeblich ist der Wert, nicht die ID
+  oder die Bezeichnung; mehrere Prioritäten mit Wert 100 werden gemeinsam gezählt.
+
+Leere Zählmengen ergeben `0`. Bei einem fehlerhaften oder unvollständigen Abruf
+werden die Sensoren dagegen als nicht verfügbar markiert. Es gibt keinen Sensor
+„Vorgänge in Bearbeitung“. „Offene Tagesabschlüsse“ wurde auf Wunsch verworfen
+und wird nicht als Entität angelegt.
+
 ## Aktualisierung und Lebenszyklus
 
-- Alle fünf Minuten wird ein vollständiger Benutzer-Snapshot abgefragt.
-- Neue Benutzer erzeugen automatisch Geräte und Sensoren.
+- Alle fünf Minuten wird ein vollständiger Datenstand aus Benutzern, Queues, Prioritäten und offenen Vorgängen abgefragt.
+- Neue Benutzer und Queues erzeugen automatisch Geräte und Sensoren.
 - Umbenennungen aktualisieren den Sensorzustand und den standardmäßigen Gerätenamen.
-- Nicht mehr gelieferte Benutzer bleiben registriert, ihr Sensor wird
+- Nicht mehr gelieferte Benutzer und Queues bleiben registriert, ihre Sensoren werden
   `unavailable`. So gehen individuelle Namen und Historie nicht verloren.
   Bei erneutem Auftreten derselben ID wird die Entität wieder verfügbar.
 - Bei Verbindungsfehlern werden Sensoren als nicht verfügbar markiert.
@@ -111,18 +137,18 @@ keine Dashboard-Karten oder Home-Assistant-Gruppenhelfer an.
 - Neuladen der Integration startet den Abruf erneut. Entfernen der Integration
   entfernt ihre Zuordnung in Home Assistant; in DocBee werden keine Daten geändert.
 
-Die Integration verwendet nur GET-Anfragen für Benutzer. Ticketaktionen,
-Schreibzugriffe und zusätzliche zentrale Entitäten sind nicht implementiert.
+Die Integration verwendet ausschließlich GET-Anfragen. Sie verändert weder
+Vorgänge noch Zuordnungen in DocBee.
 
 ## Token erneuern und Fehler beheben
 
 | Meldung/Zustand | Bedeutung und Maßnahme |
 | --- | --- |
 | Ungültige Eingabe | HTTPS-Instanz-URL ohne eingebettete Zugangsdaten, Query oder Fragment sowie nicht leeren Token eingeben. |
-| Authentifizierung fehlgeschlagen | HTTP 401/403: Token, Ablaufdatum und Benutzer-Leseberechtigung prüfen. |
+| Authentifizierung fehlgeschlagen | HTTP 401/403: Token, Ablaufdatum und Leseberechtigungen für Benutzer, Queues, Prioritäten und Vorgänge prüfen. |
 | Nicht erreichbar | Netzwerk, DNS, URL, TLS-Zertifikat oder HTTP-Fehler prüfen. Auch Weiterleitungen werden abgelehnt; die direkte Instanz-URL verwenden. |
-| Unerwartete Antwort | JSON-Struktur, `id`/`username` und Pagination weichen vom implementierten Vertrag ab. Anonymisierte Probe bereitstellen, siehe unten. |
-| Sensor nicht verfügbar | Abruf fehlgeschlagen oder Benutzer nicht mehr im API-Ergebnis. Integrationsstatus und Berechtigungen prüfen. |
+| Unerwartete Antwort | JSON-Struktur, Pflichtfelder und Pagination weichen vom implementierten Vertrag ab. Anonymisierte Probe bereitstellen, siehe unten. |
+| Sensor nicht verfügbar | Abruf fehlgeschlagen oder Benutzer/Queue nicht mehr im API-Ergebnis. Integrationsstatus und Berechtigungen prüfen. |
 
 Wird ein Token im laufenden Betrieb zurückgewiesen, fordert Home Assistant
 zur erneuten Authentifizierung auf. Dort einen neuen Access Token eintragen.
@@ -143,13 +169,13 @@ DocBee ist dafür nicht erforderlich. Für die Einrichtung wird weiterhin die
 URL der eigenen Instanz verwendet, nicht automatisch `my.docbee.com`.
 
 Der Client verwendet Bearer-Authentifizierung und
-`GET /restApi/v1/user?fields=id,username&limit=50&offset=N&sortings=id%20asc`.
+`GET /restApi/v1/user?fields=id,username,name&limit=50&offset=N&sortings=id%20asc`.
 Ein Token kann direkt in DocBee erzeugt werden; ein Login-Aufruf ist dann unnötig.
 Die Antwort folgt dem dokumentierten Schema `UserList`, zum Beispiel:
 
 ```json
 {
-  "user": [{"id": 1, "username": "beispiel"}],
+  "user": [{"id": 1, "username": "beispiel", "name": "Beispiel Benutzer"}],
   "totalCount": 1,
   "offset": 0,
   "limit": 50
@@ -165,6 +191,25 @@ führen zu einem Fehler. Der nächste Abruf versucht es erneut. Ein neuer
 Snapshot wird erst nach erfolgreichem vollständigem Abruf übernommen.
 Benutzernamen über 255 Zeichen werden abgelehnt, weil sie nicht als
 Home-Assistant-Zustand darstellbar sind.
+
+Für die Zähler werden zusätzlich die Listen `queue` (`id,name`), `priority`
+(`id,priority`) und `ticket` (`id,owner,priority`, Filter `notClosed=true`)
+unter `/restApi/v1/` abgerufen. Sie verwenden dieselben Metadaten für die
+Seitennavigation; die Datensätze stehen im jeweils gleichnamigen Listenfeld.
+Die Vorgänge werden pro Aktualisierung einmal vollständig gelesen und lokal
+nach Verantwortlichem und Priorität gezählt, nicht für jedes Gerät erneut.
+Der Abrufaufwand wächst mit der Anzahl offener Vorgänge (bis zu 50 pro Seite).
+Die API-Abfragen sind kein transaktionaler Snapshot; Änderungen während des
+Abrufs können bis zur nächsten Aktualisierung zu zeitlichen Abweichungen führen.
+
+### Update von Version 0.1.0
+
+Die Dateien aktualisieren und Home Assistant neu starten. Bestehende Geräte-IDs
+und Benutzername-Sensoren bleiben erhalten. Neue Sensoren und Queue-Geräte
+werden automatisch ergänzt. Der automatisch erzeugte Benutzer-Gerätename
+wechselt auf das DocBee-Feld `name`; manuell vergebene Gerätenamen bleiben
+bestehen. Dem bisherigen Token gegebenenfalls die zusätzlichen Leserechte für
+Queues, Prioritäten und Vorgänge erteilen.
 
 ### Anonymisierte PowerShell-Probe
 
@@ -199,7 +244,7 @@ python3.13 -m venv .venv
 .venv/bin/python -m pytest -q
 ```
 
-Die 38 Tests prüfen API-Fehler und dokumentierte Seitennavigation, URL-Prüfung,
+Die automatisierten Tests prüfen Anzeigenamen, Ticketzähler und API-Fehler und dokumentierte Seitennavigation, URL-Prüfung,
 Identitäten sowie Einrichtung, Duplikate, erneute Authentifizierung, echte
 Home-Assistant-Geräte-/Entitätsregistrierung, Benutzeränderungen, Ausfälle und
 Entladen der Integration. DocBee-Antworten werden simuliert. Die Tests
