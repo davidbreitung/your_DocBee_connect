@@ -15,7 +15,7 @@ from custom_components.docbee.devices import central_identifier, username_unique
 from custom_components.docbee.models import DocBeeUser, DocBeeQueue, DocBeeSnapshot
 
 DATA = {CONF_URL: 'https://example.com', CONF_ACCESS_TOKEN: 'test-token'}
-USERS = {'1': DocBeeUser('1', 'alice', 'Alice Example'), '2': DocBeeUser('2', 'bob')}
+USERS = {'1': DocBeeUser('1', 'alice', 'Alice Example', '17', 'Techniker', True), '2': DocBeeUser('2', 'bob')}
 
 
 def snapshot(users=USERS):
@@ -65,6 +65,9 @@ async def test_devices_sensors_updates_and_unload(hass):
         entity_id = entities.async_get_entity_id('sensor', DOMAIN, f'{entry.entry_id}:{suffix}')
         return hass.states.get(entity_id).state
     assert state('user:1:assigned_tickets') == '2'
+    assert state('user:1:role') == 'Techniker'
+    assert state('user:1:active') == 'yes'
+    assert state('user:2:active') == 'unknown'
     assert state('user:2:assigned_tickets') == '0'
     assert entities.async_get_entity_id('sensor', DOMAIN, f'{entry.entry_id}:user:1:open_daily_closings') is None
     assert state('queue:10:current_tickets') == '3'
@@ -72,11 +75,16 @@ async def test_devices_sensors_updates_and_unload(hass):
     assert state('central:priority_one_tickets') == '1'
     assert len([d for d in devices if d.model == 'Queues']) == 1
     coordinator = entry.runtime_data
-    coordinator.async_set_updated_data(snapshot({'1': DocBeeUser('1', 'renamed', 'Alice Updated'), '3': DocBeeUser('3', 'carol')}))
+    coordinator.async_set_updated_data(snapshot({'1': DocBeeUser('1', 'renamed', 'Alice Updated', '18', 'Admin', False), '3': DocBeeUser('3', 'carol')}))
     await hass.async_block_till_done()
     assert hass.states.get(alice_id).state == 'renamed'
     alice_device = registry.async_get(entities.async_get(alice_id).device_id)
     assert alice_device.name == 'Alice Updated'
+    assert state('user:1:role') == 'Admin'
+    assert state('user:1:active') == 'no'
+    role_entity = entities.async_get_entity_id('sensor', DOMAIN, f'{entry.entry_id}:user:1:role')
+    assert hass.states.get(role_entity).attributes['permission_group_id'] == '18'
+    assert 'state_class' not in hass.states.get(role_entity).attributes
     assert entities.async_get_entity_id('sensor', DOMAIN, username_unique_id(entry.entry_id, '1')) == alice_id
     bob_id = entities.async_get_entity_id('sensor', DOMAIN, username_unique_id(entry.entry_id, '2'))
     assert hass.states.get(bob_id).state == 'unavailable'

@@ -45,6 +45,16 @@
       },
       "priority_one_tickets": {
         "name": "Priority 1 tickets"
+      },
+      "role": {
+        "name": "Role"
+      },
+      "active": {
+        "name": "Active",
+        "state": {
+          "yes": "Yes",
+          "no": "No"
+        }
       }
     }
   }

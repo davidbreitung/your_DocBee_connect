@@ -1,6 +1,6 @@
 """User, queue and central sensors for Your Docbee Connect."""
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -26,7 +26,7 @@ async def async_setup_entry(
     def add_devices() -> None:
         entities = []
         for kind, records, keys in (
-            ("user", coordinator.data.users, ("username", "assigned_tickets")),
+            ("user", coordinator.data.users, ("username", "role", "active", "assigned_tickets")),
             ("queue", coordinator.data.queues, ("current_tickets",)),
         ):
             for identifier in records:
@@ -55,8 +55,14 @@ class DocBeeSensor(CoordinatorEntity[DocBeeCoordinator], SensorEntity):
         suffix = kind if identifier is None else f"{kind}:{identifier}"
         self._attr_unique_id = f"{entry_id}:{suffix}:{key}"
         self._attr_icon = "mdi:account" if key == "username" else "mdi:ticket-outline"
-        if key != "username":
+        if key in ("assigned_tickets", "current_tickets", "open_tickets", "priority_one_tickets"):
             self._attr_state_class = SensorStateClass.MEASUREMENT
+        elif key == "role":
+            self._attr_icon = "mdi:account-key"
+        elif key == "active":
+            self._attr_icon = "mdi:account-check"
+            self._attr_device_class = SensorDeviceClass.ENUM
+            self._attr_options = ["yes", "no"]
         self._attr_device_info = self._device_info()
 
     def _device_info(self) -> dict | None:
@@ -84,7 +90,19 @@ class DocBeeSensor(CoordinatorEntity[DocBeeCoordinator], SensorEntity):
             return None
         if self._key == "username":
             return data.users[self._identifier].username
+        if self._key == "role":
+            return data.users[self._identifier].role_name
+        if self._key == "active":
+            enabled = data.users[self._identifier].enabled
+            return None if enabled is None else ("yes" if enabled else "no")
         return data.assigned_tickets.get(self._identifier, 0)
+
+    @property
+    def extra_state_attributes(self) -> dict | None:
+        if self._key == "role":
+            user = self.coordinator.data.users.get(self._identifier)
+            return {"permission_group_id": user.role_id if user else None}
+        return None
 
     @callback
     def _handle_coordinator_update(self) -> None:

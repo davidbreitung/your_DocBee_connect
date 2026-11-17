@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.2.0 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.2.1 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -79,7 +79,7 @@ HTTP und Weiterleitungen werden nicht akzeptiert.
 | Typ | Gerätename | Modell | Entitäten |
 | --- | --- | --- | --- |
 | Zentrale Konfiguration | Zentrale Konfiguration | Zentrale Konfiguration | „Vorgänge offen“, „Vorgänge Prio 1“ |
-| Benutzer | Anzeigename (`name`) aus DocBee | Benutzer | „Benutzername“, „Zugewiesene Vorgänge“ |
+| Benutzer | Anzeigename (`name`) aus DocBee | Benutzer | „Benutzername“, „Rolle“, „Aktiv“, „Zugewiesene Vorgänge“ |
 | Queue | Queue-Name aus DocBee | Queues | „Aktuelle Tickets“ |
 
 Das zentrale Gerät wird ausdrücklich registriert. Jeder Benutzer und jede Queue
@@ -100,6 +100,23 @@ als separates Gerät. In der Geräteübersicht können die Geräte nach Integrat
 und Modell gefiltert werden. Eine eigene visuelle Dashboard-Gruppe kann der
 Benutzer manuell mit den gewünschten Entitäten anlegen; die Integration legt
 keine Dashboard-Karten oder Home-Assistant-Gruppenhelfer an.
+
+### Rolle und Aktiv-Status
+
+- **Rolle:** Anzeigename der zugeordneten DocBee-Rolle (`permissionGroup.name`).
+  Die Rollen-ID steht zusätzlich im Attribut `permission_group_id`. Die Rolle
+  ist die Berechtigungsgruppe des Benutzers, nicht eine Liste einzelner Rechte.
+- **Aktiv:** Das DocBee-Feld `enabled`, in der deutschen Oberfläche als **Ja**
+  oder **Nein** angezeigt. Für Automationen sind die Zustandswerte `yes` und `no`.
+  Dies ist der Aktivierungsstatus des Kontos, keine Online-/Anwesenheitsanzeige.
+
+Beide Werte werden mit dem regulären Fünf-Minuten-Abruf aktualisiert. Auch
+inaktive Benutzer behalten ihr Gerät und ihre Entitäten. Fehlende Werte werden
+als unbekannt dargestellt, nicht als „Nein“ oder als erfundene Rolle. Falls DocBee
+nur eine Rollen-ID liefert, bleibt der Rollenname unbekannt und die ID im Attribut
+erhalten. Bei Abruffehlern oder einem entfernten Benutzer sind die Entitäten
+wie die übrigen Benutzersensoren nicht verfügbar. Die Integration ändert weder
+Rollen noch den Aktiv-Status in DocBee.
 
 ### Bedeutung der Ticketzähler
 
@@ -169,13 +186,13 @@ DocBee ist dafür nicht erforderlich. Für die Einrichtung wird weiterhin die
 URL der eigenen Instanz verwendet, nicht automatisch `my.docbee.com`.
 
 Der Client verwendet Bearer-Authentifizierung und
-`GET /restApi/v1/user?fields=id,username,name&limit=50&offset=N&sortings=id%20asc`.
+`GET /restApi/v1/user?fields=id,username,name,enabled,permissionGroup.id,permissionGroup.name&limit=50&offset=N&sortings=id%20asc`.
 Ein Token kann direkt in DocBee erzeugt werden; ein Login-Aufruf ist dann unnötig.
 Die Antwort folgt dem dokumentierten Schema `UserList`, zum Beispiel:
 
 ```json
 {
-  "user": [{"id": 1, "username": "beispiel", "name": "Beispiel Benutzer"}],
+  "user": [{"id": 1, "username": "beispiel", "name": "Beispiel Benutzer", "enabled": true, "permissionGroup": {"id": 17, "name": "Techniker"}}],
   "totalCount": 1,
   "offset": 0,
   "limit": 50
@@ -192,6 +209,9 @@ Snapshot wird erst nach erfolgreichem vollständigem Abruf übernommen.
 Benutzernamen über 255 Zeichen werden abgelehnt, weil sie nicht als
 Home-Assistant-Zustand darstellbar sind.
 
+Der Rollenname wird mit der dokumentierten `fields`-Erweiterung des verknüpften
+Objekts `permissionGroup` direkt im Benutzerabruf gelesen.
+
 Für die Zähler werden zusätzlich die Listen `queue` (`id,name`), `priority`
 (`id,priority`) und `ticket` (`id,owner,priority`, Filter `notClosed=true`)
 unter `/restApi/v1/` abgerufen. Sie verwenden dieselben Metadaten für die
@@ -202,10 +222,10 @@ Der Abrufaufwand wächst mit der Anzahl offener Vorgänge (bis zu 50 pro Seite).
 Die API-Abfragen sind kein transaktionaler Snapshot; Änderungen während des
 Abrufs können bis zur nächsten Aktualisierung zu zeitlichen Abweichungen führen.
 
-### Update von Version 0.1.0
+### Update von einer früheren Version
 
 Die Dateien aktualisieren und Home Assistant neu starten. Bestehende Geräte-IDs
-und Benutzername-Sensoren bleiben erhalten. Neue Sensoren und Queue-Geräte
+und Benutzername-Sensoren bleiben erhalten. Neue Sensoren (einschließlich „Rolle“ und „Aktiv“) und Queue-Geräte
 werden automatisch ergänzt. Der automatisch erzeugte Benutzer-Gerätename
 wechselt auf das DocBee-Feld `name`; manuell vergebene Gerätenamen bleiben
 bestehen. Dem bisherigen Token gegebenenfalls die zusätzlichen Leserechte für

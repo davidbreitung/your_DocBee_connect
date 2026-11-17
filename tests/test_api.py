@@ -107,7 +107,7 @@ async def test_incomplete_or_inconsistent_pages(second):
 async def test_user_display_name_is_requested_and_parsed():
     session = session_for(page([{'id': 1, 'username': 'alice', 'name': 'Alice Example'}]))
     users = await DocBeeClient(session, 'https://example.com', 'secret').async_get_users()
-    assert session.get.call_args.kwargs['params']['fields'] == 'id,username,name'
+    assert session.get.call_args.kwargs['params']['fields'] == 'id,username,name,enabled,permissionGroup.id,permissionGroup.name'
     assert users['1'].display_name == 'Alice Example'
     assert users['1'].username == 'alice'
 
@@ -166,3 +166,28 @@ async def test_invalid_ticket_does_not_produce_false_zero_counts(ticket):
     session = session_for(page([]), resource_page('queue', []), resource_page('priority', []), resource_page('ticket', [ticket]))
     with pytest.raises(DocBeeResponseError):
         await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
+
+
+@pytest.mark.parametrize('enabled', [True, False, None])
+async def test_role_expansion_and_enabled_status(enabled):
+    session = session_for(page([{'id': 1, 'username': 'alice', 'enabled': enabled,
+                                'permissionGroup': {'id': 17, 'name': 'Techniker'}}]))
+    user = (await DocBeeClient(session, 'https://example.com', 'secret').async_get_users())['1']
+    assert user.role_id == '17'
+    assert user.role_name == 'Techniker'
+    assert user.enabled is enabled
+
+
+async def test_unexpanded_role_is_not_misreported_as_a_name():
+    session = session_for(page([{'id': 1, 'username': 'alice', 'permissionGroup': 17}]))
+    user = (await DocBeeClient(session, 'https://example.com', 'secret').async_get_users())['1']
+    assert user.role_id == '17'
+    assert user.role_name is None
+    assert user.enabled is None
+
+
+@pytest.mark.parametrize('enabled', ['false', 0, 1, {}])
+async def test_invalid_enabled_status_is_not_coerced(enabled):
+    session = session_for(page([{'id': 1, 'username': 'alice', 'enabled': enabled}]))
+    with pytest.raises(DocBeeResponseError):
+        await DocBeeClient(session, 'https://example.com', 'secret').async_get_users()

@@ -45,6 +45,16 @@
       },
       "priority_one_tickets": {
         "name": "Vorgänge Prio 1"
+      },
+      "role": {
+        "name": "Rolle"
+      },
+      "active": {
+        "name": "Aktiv",
+        "state": {
+          "yes": "Ja",
+          "no": "Nein"
+        }
       }
     }
   }

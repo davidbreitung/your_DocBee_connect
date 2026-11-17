@@ -128,9 +128,22 @@ class DocBeeClient:
 
     async def async_get_users(self) -> dict[str, DocBeeUser]:
         users = {}
-        for row in await self._list("user", "id,username,name"):
+        for row in await self._list("user", "id,username,name,enabled,permissionGroup.id,permissionGroup.name"):
+            role = row.get("permissionGroup")
+            role_id = None
+            role_name = None
+            if isinstance(role, dict):
+                if role.get("id") is not None:
+                    role_id = self._identifier(role["id"])
+                role_name = role.get("name")
+            elif role is not None:
+                # Preserve a reference if DocBee cannot expand its visible name.
+                role_id = self._identifier(role)
             try:
-                user = DocBeeUser(str(row["id"]), row.get("username"), row.get("name"))
+                user = DocBeeUser(
+                    str(row["id"]), row.get("username"), row.get("name"),
+                    role_id, role_name, row.get("enabled"),
+                )
             except ValueError as err:
                 raise DocBeeResponseError("Missing or invalid user fields") from err
             if len(user.username) > 255:

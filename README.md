@@ -3,7 +3,7 @@
 Custom Integration mit UI-Einrichtung per Access Token, einem virtuellen Gerät
 „Zentrale Konfiguration“, Benutzergeräten mit Anzeigenamen und eigenen Queue-Geräten.
 Sensoren zählen nicht abgeschlossene Vorgänge je Verantwortlichem und Queue sowie
-insgesamt und mit Prioritätswert 100. Der Benutzername bleibt als eigene Entität erhalten.
+insgesamt und mit Prioritätswert 100. Benutzername, Rolle und Aktiv-Status (Ja/Nein) sind eigene Entitäten.
 
 **Entwicklungsstand:** Implementiert anhand der DocBee-OpenAPI-Spezifikation
 2026.2.0 und mit Home Assistant Core 2025.6.3 getestet. Ein Live-Test mit einer

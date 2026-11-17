@@ -13,6 +13,9 @@ class DocBeeUser:
     id: str
     username: str
     name: str | None = None
+    role_id: str | None = None
+    role_name: str | None = None
+    enabled: bool | None = None
 
     @property
     def display_name(self) -> str:
@@ -20,6 +23,10 @@ class DocBeeUser:
         return self.name if self.name and self.name.strip() else self.username
 
     def __post_init__(self) -> None:
+        if self.enabled is not None and type(self.enabled) is not bool:
+            raise ValueError("The enabled status must be a boolean")
+        if self.role_name is not None and (not isinstance(self.role_name, str) or len(self.role_name) > 255):
+            raise ValueError("Invalid role name")
         if self.name is not None and not isinstance(self.name, str):
             raise ValueError("The display name must be a string")
         if not isinstance(self.id, str) or not self.id.strip():
