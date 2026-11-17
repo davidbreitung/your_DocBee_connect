@@ -1,12 +1,16 @@
 """Read-only DocBee REST API client."""
 
 import asyncio
+from decimal import Decimal, InvalidOperation
+import logging
 from typing import Any
 
 import aiohttp
 from yarl import URL
 
 from .models import DocBeeUser, DocBeeQueue, DocBeeSnapshot
+
+_LOGGER = logging.getLogger(__name__)
 
 PAGE_SIZE = 50
 MAX_PAGES = 1000
@@ -126,6 +130,19 @@ class DocBeeClient:
             raise DocBeeResponseError("Missing or invalid record ID")
         return str(value)
 
+    @staticmethod
+    def _priority_value(value: Any) -> int | None:
+        """Accept equivalent whole numeric forms, never coerce invalid data to zero."""
+        if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+            return None
+        try:
+            number = Decimal(str(value).strip())
+        except InvalidOperation:
+            return None
+        if not number.is_finite() or not 0 <= number <= 100 or number != number.to_integral_value():
+            return None
+        return int(number)
+
     async def async_get_users(self) -> dict[str, DocBeeUser]:
         users = {}
         for row in await self._list("user", "id,username,name,enabled,permissionGroup.id,permissionGroup.name"):
@@ -161,10 +178,19 @@ class DocBeeClient:
             queue = DocBeeQueue(str(row["id"]), row["name"])
             queues[queue.id] = queue
         priority_one = set()
+        priority_values_valid = True
+        known_priorities = set()
         for row in await self._list("priority", "id,priority"):
-            if type(row.get("priority")) is not int:
-                raise DocBeeResponseError("Invalid priority value")
-            if row["priority"] == 100:
+            known_priorities.add(str(row["id"]))
+            value = self._priority_value(row.get("priority"))
+            if value is None:
+                priority_values_valid = False
+                _LOGGER.warning(
+                    "DocBee returned a missing or invalid priority value (type: %s); "
+                    "the priority-1 sensor is unavailable until valid data is returned",
+                    type(row.get("priority")).__name__,
+                )
+            elif value == 100:
                 priority_one.add(str(row["id"]))
         tickets = await self._list("ticket", "id,owner,priority", {"notClosed": "true"})
         assigned: dict[str, int] = {}
@@ -177,6 +203,11 @@ class DocBeeClient:
                 assigned[owner] = assigned.get(owner, 0) + 1
             if row["priority"] is not None:
                 priority = self._identifier(row["priority"])
+                if priority not in known_priorities:
+                    priority_values_valid = False
                 if priority in priority_one:
                     priority_count += 1
-        return DocBeeSnapshot(users, queues, assigned, len(tickets), priority_count)
+        return DocBeeSnapshot(
+            users, queues, assigned, len(tickets),
+            priority_count if priority_values_valid else None,
+        )

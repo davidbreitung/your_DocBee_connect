@@ -100,6 +100,14 @@ async def test_devices_sensors_updates_and_unload(hass):
     coordinator.async_set_updated_data(snapshot())
     await hass.async_block_till_done()
     assert state('queue:11:current_tickets') == 'unavailable'
+    coordinator.async_set_updated_data(DocBeeSnapshot(USERS, snapshot().queues, {'1': 2}, 2, None))
+    await hass.async_block_till_done()
+    assert state('central:priority_one_tickets') == 'unavailable'
+    assert state('central:open_tickets') == '2'
+    assert state('user:1:assigned_tickets') == '2'
+    coordinator.async_set_updated_data(snapshot())
+    await hass.async_block_till_done()
+    assert state('central:priority_one_tickets') == '1'
     coordinator.async_set_update_error(DocBeeConnectionError())
     await hass.async_block_till_done()
     assert hass.states.get(alice_id).state == 'unavailable'

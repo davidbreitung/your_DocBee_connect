@@ -51,4 +51,4 @@ class DocBeeSnapshot:
     queues: dict[str, DocBeeQueue]
     assigned_tickets: dict[str, int]
     open_tickets: int
-    priority_one_tickets: int
+    priority_one_tickets: int | None

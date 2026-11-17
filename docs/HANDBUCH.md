@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.2.1 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.2.2 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -134,6 +134,16 @@ sind entsprechend der DocBee-Filtersemantik enthalten.
 - **Vorgänge Prio 1:** Nicht abgeschlossene Vorgänge mit einer Priorität, deren
   numerischer Prioritätswert **100** ist. Maßgeblich ist der Wert, nicht die ID
   oder die Bezeichnung; mehrere Prioritäten mit Wert 100 werden gemeinsam gezählt.
+
+Prioritätswerte werden auch als gleichwertige Zahlenformate wie `100.0`,
+`"100"` oder `"100.0"` akzeptiert. Fehlt ein Prioritätswert, ist er ungültig
+oder verweist ein Vorgang auf eine nicht gelieferte Priorität, wird ausschließlich
+„Vorgänge Prio 1“ als nicht verfügbar markiert. Die Einrichtung und die übrigen
+Sensoren funktionieren weiter. Nach einem gültigen Abruf wird der Sensor wieder
+verfügbar. Ein Hinweis im Protokoll nennt bei ungültigen Werten nur den Datentyp,
+keine Rohdaten. Diese Behandlung behebt den bisherigen vollständigen
+Einrichtungsabbruch mit „Invalid priority value“; das genaue Antwortformat der
+betroffenen Instanz wurde noch nicht direkt geprüft.
 
 Leere Zählmengen ergeben `0`. Bei einem fehlerhaften oder unvollständigen Abruf
 werden die Sensoren dagegen als nicht verfügbar markiert. Es gibt keinen Sensor

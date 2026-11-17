@@ -191,3 +191,32 @@ async def test_invalid_enabled_status_is_not_coerced(enabled):
     session = session_for(page([{'id': 1, 'username': 'alice', 'enabled': enabled}]))
     with pytest.raises(DocBeeResponseError):
         await DocBeeClient(session, 'https://example.com', 'secret').async_get_users()
+
+
+@pytest.mark.parametrize('value,expected', [(100, 1), (100.0, 1), ('100', 1), ('100.0', 1), (' 100 ', 1), (0, 0), ('50', 0)])
+async def test_priority_numeric_representations(value, expected):
+    session = session_for(page([]), resource_page('queue', []),
+        resource_page('priority', [{'id': 77, 'priority': value}]),
+        resource_page('ticket', [{'id': 1, 'owner': 20, 'priority': 77}]))
+    snapshot = await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
+    assert snapshot.priority_one_tickets == expected
+    assert snapshot.assigned_tickets == {'20': 1}
+
+
+@pytest.mark.parametrize('value', [None, True, '', 'high', 'NaN', 'Infinity', 100.5, -1, 101, {}])
+async def test_bad_priority_only_disables_priority_count(value):
+    session = session_for(page([]), resource_page('queue', []),
+        resource_page('priority', [{'id': 77, 'priority': value}]),
+        resource_page('ticket', [{'id': 1, 'owner': 20, 'priority': 77}]))
+    snapshot = await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
+    assert snapshot.priority_one_tickets is None
+    assert snapshot.open_tickets == 1
+    assert snapshot.assigned_tickets == {'20': 1}
+
+
+async def test_unknown_priority_reference_does_not_produce_false_zero():
+    session = session_for(page([]), resource_page('queue', []), resource_page('priority', []),
+        resource_page('ticket', [{'id': 1, 'owner': 20, 'priority': 77}]))
+    snapshot = await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
+    assert snapshot.priority_one_tickets is None
+    assert snapshot.open_tickets == 1

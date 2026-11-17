@@ -79,6 +79,8 @@ class DocBeeSensor(CoordinatorEntity[DocBeeCoordinator], SensorEntity):
     def available(self) -> bool:
         if not super().available:
             return False
+        if self._key == "priority_one_tickets":
+            return self.coordinator.data.priority_one_tickets is not None
         return self._device_info() is not None
 
     @property
