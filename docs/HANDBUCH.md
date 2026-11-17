@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.3.0 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.3.1 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -78,7 +78,7 @@ HTTP und Weiterleitungen werden nicht akzeptiert.
 
 | Typ | Gerätename | Modell | Entitäten |
 | --- | --- | --- | --- |
-| Zentrale Konfiguration | Zentrale Konfiguration | Zentrale Konfiguration | „Vorgänge offen“, „Vorgänge Prio 1“, „Neuer Prio 1 Vorgang“, Ereignis „Prio 1 Vorgangsereignis“ |
+| Zentrale Konfiguration | Zentrale Konfiguration | Zentrale Konfiguration | „Vorgänge offen“, „Vorgänge Prio 1“, „Neuer Prio 1 Vorgang“, Ereignis „Prio 1 Vorgangsereignis“, „Bearbeitete Tickets heute“, „Anzahl neue Tickets heute“, „Geschlossene Tickets heute“ |
 | Benutzer | Anzeigename (`name`) aus DocBee | Benutzer | „Benutzername“, „Rolle“, „Aktiv“, „Zugewiesene Vorgänge“ |
 | Queue | Queue-Name aus DocBee | Queues | „Aktuelle Tickets“ |
 
@@ -161,6 +161,37 @@ Leere Zählmengen ergeben `0`. Bei einem fehlerhaften oder unvollständigen Abru
 werden die Sensoren dagegen als nicht verfügbar markiert. Es gibt keinen Sensor
 „Vorgänge in Bearbeitung“. „Offene Tagesabschlüsse“ wurde auf Wunsch verworfen
 und wird nicht als Entität angelegt.
+
+## Tageszähler auf Zentrale Konfiguration
+
+- **Bearbeitete Tickets heute:** Anzahl unterschiedlicher Vorgänge mit letzter
+  Änderung heute (`ticketScope=TICKET_MODIFIED`). Mehrere Änderungen an einem
+  Vorgang zählen einmal. Auch automatische Änderungen und neu angelegte Vorgänge
+  können entsprechend ihrem Änderungsdatum enthalten sein; der Sensor misst
+  keine Arbeitszeit und unterscheidet keine menschliche von automatischer Bearbeitung.
+- **Anzahl neue Tickets heute:** Vorgänge mit Erstellungsdatum heute
+  (`ticketScope=TICKET_CREATED`).
+- **Geschlossene Tickets heute:** Vorgänge mit einem laut API heute liegenden
+  Schließungsdatum (`ticketScope=TICKET_CLOSED`). Gezählt werden Vorgänge, nicht
+  einzelne Schließungsvorgänge. Bei wiederholtem Schließen oder Wiederöffnen ist
+  das von DocBee gespeicherte Schließungsdatum maßgeblich; es wird keine vollständige
+  Statushistorie rekonstruiert.
+
+Die Abfragen reichen von **00:00 Uhr in der Home-Assistant-Zeitzone bis zum
+Abrufzeitpunkt**. Die Zeitgrenzen werden mit dem passenden Zeitzonenversatz nach
+UTC umgerechnet, einschließlich Sommer-/Winterzeit. Die drei Werte werden alle
+fünf Minuten aktualisiert und beziehen sich nach Mitternacht beim nächsten Abruf
+auf den neuen Tag. Die Zähler benötigen keine vorherige lokale Historie und
+funktionieren daher auch nach einem Neustart mitten am Tag.
+
+Anders als die Zähler offener Vorgänge verwenden diese Abfragen **keinen**
+`notClosed`-Filter. Ein heute neu erstellter oder bearbeiteter und anschließend
+geschlossener Vorgang bleibt damit im jeweiligen Tageszähler enthalten. Es werden
+nur für den Token sichtbare Vorgänge gezählt. Pro Tageszähler wird eine
+Listenabfrage mit `limit=1`, `startDate`, `endDate` und dem jeweiligen `ticketScope`
+gestellt und `totalCount` ausgewertet. So funktionieren die Zähler auch über
+50 Tickets hinaus, ohne alle Treffer herunterladen zu müssen. Ungültige Antworten
+werden nicht als null Vorgänge ausgegeben.
 
 ## Ereignis bei neuen Prio-1-Vorgängen
 

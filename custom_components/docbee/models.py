@@ -53,3 +53,6 @@ class DocBeeSnapshot:
     open_tickets: int
     priority_one_tickets: int | None
     priority_one_ticket_numbers: dict[str, str] | None = None
+    modified_today: int | None = None
+    created_today: int | None = None
+    closed_today: int | None = None

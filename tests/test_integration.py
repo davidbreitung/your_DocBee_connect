@@ -18,6 +18,14 @@ DATA = {CONF_URL: 'https://example.com', CONF_ACCESS_TOKEN: 'test-token'}
 USERS = {'1': DocBeeUser('1', 'alice', 'Alice Example', '17', 'Techniker', True), '2': DocBeeUser('2', 'bob')}
 
 
+@pytest.fixture(autouse=True)
+def daily_counts():
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_daily_counts', return_value={
+        'modified_today': 7, 'created_today': 3, 'closed_today': 2,
+    }):
+        yield
+
+
 def snapshot(users=USERS):
     return DocBeeSnapshot(users, {'10': DocBeeQueue('10', 'Support')}, {'1': 2, '10': 3}, 5, 1)
 
@@ -54,7 +62,7 @@ async def test_devices_sensors_updates_and_unload(hass):
     central = registry.async_get_device(identifiers={central_identifier(entry.entry_id)})
     assert central.name == 'Zentrale Konfiguration'
     entities = er.async_get(hass)
-    assert len(er.async_entries_for_device(entities, central.id)) == 4
+    assert len(er.async_entries_for_device(entities, central.id)) == 7
     devices = dr.async_entries_for_config_entry(registry, entry.entry_id)
     assert len(devices) == 4
     assert len([d for d in devices if d.model == 'Benutzer']) == 2
@@ -74,6 +82,9 @@ async def test_devices_sensors_updates_and_unload(hass):
     assert state('central:open_tickets') == '5'
     assert state('central:priority_one_tickets') == '1'
     assert len([d for d in devices if d.model == 'Queues']) == 1
+    assert state('central:modified_today') == '7'
+    assert state('central:created_today') == '3'
+    assert state('central:closed_today') == '2'
     coordinator = entry.runtime_data
     coordinator.async_set_updated_data(snapshot({'1': DocBeeUser('1', 'renamed', 'Alice Updated', '18', 'Admin', False), '3': DocBeeUser('3', 'carol')}))
     await hass.async_block_till_done()
@@ -245,3 +256,28 @@ async def test_priority_events_baseline_transitions_and_restore(hass):
     assert len(events) == 3
     assert hass.states.get(latest_id).state == 'V2'
     unsubscribe()
+
+
+@pytest.mark.parametrize('now,start', [
+    ('2026-11-17T12:00:00+00:00', '2026-11-16T23:00:00+00:00'),
+    ('2026-03-29T12:00:00+00:00', '2026-03-28T23:00:00+00:00'),
+    ('2026-10-25T12:00:00+00:00', '2026-10-24T22:00:00+00:00'),
+    ('2026-11-16T23:00:00+00:00', '2026-11-16T23:00:00+00:00'),
+])
+async def test_daily_counts_follow_ha_timezone_and_dst(hass, now, start):
+    from datetime import datetime
+    from unittest.mock import AsyncMock, MagicMock
+    from custom_components.docbee.coordinator import DocBeeCoordinator
+
+    await hass.config.async_set_time_zone('Europe/Berlin')
+    entry = MockConfigEntry(domain=DOMAIN, data=DATA)
+    client = MagicMock()
+    client.async_get_snapshot = AsyncMock(return_value=snapshot())
+    client.async_get_daily_counts = AsyncMock(return_value={
+        'modified_today': 0, 'created_today': 0, 'closed_today': 0,
+    })
+    coordinator = DocBeeCoordinator(hass, entry, client)
+    with patch('custom_components.docbee.coordinator.dt_util.utcnow', return_value=datetime.fromisoformat(now)):
+        result = await coordinator._async_update_data()
+    client.async_get_daily_counts.assert_awaited_once_with(start, now)
+    assert result.modified_today == result.created_today == result.closed_today == 0

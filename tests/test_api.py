@@ -235,3 +235,24 @@ async def test_priority_event_requires_a_real_ticket_number(number):
         resource_page('ticket', [{'id': 1, 'ticketNumber': number}]))
     with pytest.raises(DocBeeResponseError, match='ticket number'):
         await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
+
+
+async def test_daily_counts_use_total_count_and_independent_scopes():
+    session = session_for(*[resource_page('ticket', [{'id': 1}], total=n, limit=1) for n in (251, 19, 7)])
+    counts = await DocBeeClient(session, 'https://example.com', 'secret').async_get_daily_counts(
+        '2026-11-16T23:00:00+00:00', '2026-11-17T12:00:00+00:00')
+    assert counts == {'modified_today': 251, 'created_today': 19, 'closed_today': 7}
+    assert [c.kwargs['params']['ticketScope'] for c in session.get.call_args_list] == [
+        'TICKET_MODIFIED', 'TICKET_CREATED', 'TICKET_CLOSED']
+    for call in session.get.call_args_list:
+        assert call.kwargs['params']['startDate'] == '2026-11-16T23:00:00+00:00'
+        assert call.kwargs['params']['endDate'] == '2026-11-17T12:00:00+00:00'
+        assert call.kwargs['params']['limit'] == 1
+        assert 'notClosed' not in call.kwargs['params']
+
+
+@pytest.mark.parametrize('count', [None, True, -1, '7'])
+async def test_daily_counts_reject_bad_totals(count):
+    session = session_for({'ticket': [], 'totalCount': count})
+    with pytest.raises(DocBeeResponseError):
+        await DocBeeClient(session, 'https://example.com', 'secret').async_get_daily_counts('start', 'end')

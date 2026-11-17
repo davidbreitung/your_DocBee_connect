@@ -224,3 +224,24 @@ class DocBeeClient:
             users, queues, assigned, len(tickets),
             priority_count if priority_values_valid else None, event_tickets,
         )
+
+    async def async_get_daily_counts(self, start: str, end: str) -> dict[str, int]:
+        """Read totalCount for distinct tickets matching each documented date scope."""
+        counts = {}
+        for key, scope in (
+            ("modified_today", "TICKET_MODIFIED"),
+            ("created_today", "TICKET_CREATED"),
+            ("closed_today", "TICKET_CLOSED"),
+        ):
+            payload = await self._page(0, "ticket", "id", {
+                "limit": 1, "startDate": start, "endDate": end, "ticketScope": scope,
+            })
+            if (
+                not isinstance(payload, dict)
+                or not isinstance(payload.get("ticket"), list)
+                or type(payload.get("totalCount")) is not int
+                or payload["totalCount"] < 0
+            ):
+                raise DocBeeResponseError("Invalid daily ticket count response")
+            counts[key] = payload["totalCount"]
+        return counts

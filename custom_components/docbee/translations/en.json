@@ -58,6 +58,15 @@
       },
       "new_priority_one_ticket": {
         "name": "New priority 1 ticket"
+      },
+      "modified_today": {
+        "name": "Tickets modified today"
+      },
+      "created_today": {
+        "name": "New tickets today"
+      },
+      "closed_today": {
+        "name": "Tickets closed today"
       }
     },
     "event": {

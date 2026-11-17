@@ -58,6 +58,15 @@
       },
       "new_priority_one_ticket": {
         "name": "Neuer Prio 1 Vorgang"
+      },
+      "modified_today": {
+        "name": "Bearbeitete Tickets heute"
+      },
+      "created_today": {
+        "name": "Anzahl neue Tickets heute"
+      },
+      "closed_today": {
+        "name": "Geschlossene Tickets heute"
       }
     },
     "event": {

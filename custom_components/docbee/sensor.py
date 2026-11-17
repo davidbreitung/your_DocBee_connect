@@ -23,7 +23,7 @@ async def async_setup_entry(
     groups = group_ids(entry)
     async_add_entities([
         DocBeeSensor(coordinator, entry.entry_id, "central", None, key)
-        for key in ("open_tickets", "priority_one_tickets", "new_priority_one_ticket")
+        for key in ("open_tickets", "priority_one_tickets", "new_priority_one_ticket", "modified_today", "created_today", "closed_today")
     ], config_subentry_id=groups["central"])
 
     @callback
@@ -59,7 +59,7 @@ class DocBeeSensor(CoordinatorEntity[DocBeeCoordinator], SensorEntity):
         suffix = kind if identifier is None else f"{kind}:{identifier}"
         self._attr_unique_id = f"{entry_id}:{suffix}:{key}"
         self._attr_icon = "mdi:account" if key == "username" else "mdi:ticket-outline"
-        if key in ("assigned_tickets", "current_tickets", "open_tickets", "priority_one_tickets"):
+        if key in ("assigned_tickets", "current_tickets", "open_tickets", "priority_one_tickets", "modified_today", "created_today", "closed_today"):
             self._attr_state_class = SensorStateClass.MEASUREMENT
         elif key == "role":
             self._attr_icon = "mdi:account-key"

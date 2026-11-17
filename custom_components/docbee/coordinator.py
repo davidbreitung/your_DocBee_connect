@@ -1,11 +1,14 @@
 """Refresh DocBee users, queues and ticket counts as an atomic snapshot."""
 
 from datetime import timedelta
+from dataclasses import replace
+from zoneinfo import ZoneInfo
 import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
@@ -39,7 +42,14 @@ class DocBeeCoordinator(DataUpdateCoordinator[DocBeeSnapshot]):
 
     async def _async_update_data(self) -> DocBeeSnapshot:
         try:
-            return await self.client.async_get_snapshot()
+            snapshot = await self.client.async_get_snapshot()
+            now = dt_util.utcnow()
+            local_now = now.astimezone(ZoneInfo(self.hass.config.time_zone))
+            midnight = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            counts = await self.client.async_get_daily_counts(
+                dt_util.as_utc(midnight).isoformat(), now.isoformat(),
+            )
+            return replace(snapshot, **counts)
         except DocBeeAuthError as err:
             raise ConfigEntryAuthFailed("DocBee access token or permissions invalid") from err
         except DocBeeError as err:
