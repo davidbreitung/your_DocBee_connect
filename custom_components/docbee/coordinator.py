@@ -49,7 +49,10 @@ class DocBeeCoordinator(DataUpdateCoordinator[DocBeeSnapshot]):
             counts = await self.client.async_get_daily_counts(
                 dt_util.as_utc(midnight).isoformat(), now.isoformat(),
             )
-            return replace(snapshot, **counts)
+            user_counts = await self.client.async_get_user_daily_counts(
+                dt_util.as_utc(midnight).isoformat(), now.isoformat(), set(snapshot.users),
+            )
+            return replace(snapshot, **counts, **user_counts)
         except DocBeeAuthError as err:
             raise ConfigEntryAuthFailed("DocBee access token or permissions invalid") from err
         except DocBeeError as err:

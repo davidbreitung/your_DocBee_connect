@@ -1,15 +1,15 @@
 # Projektstatus
 
-Stand: **17.11.2026**. Laufzeitversion **0.3.1**, letzter funktionaler Commit
-**`247eb17`** („Add daily modified created and closed ticket counters“).
-Der folgende Dokumentationscommit ändert weder Runtime-Version noch Dienste.
+Stand: **17.11.2026**. Laufzeitversion **0.4.0**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
+Statushistorien. Den exakten neuesten Commit mit `git log -1` prüfen.
+Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
 ## Bestätigt implementiert
 
 - HACS-Metadaten, manuelle Installation, deutsche/englische UI-Texte, Handbuch.
 - Einrichtung mit URL/Access Token, Duplikatkontrolle, Reauthentifizierung.
 - Drei native Bereiche: Zentrale Konfiguration, Benutzer, Queues.
-- Benutzergeräte mit Anzeigename; Benutzername, Rolle, Aktiv, zugewiesene offene Vorgänge.
+- Benutzergeräte mit Anzeigename; Benutzername, Rolle, Aktiv, zugewiesene offene Vorgänge, heute bearbeitete und heute geschlossene Tickets.
 - Queue-Geräte mit „Aktuelle Tickets“, nur nicht abgeschlossene Vorgänge.
 - Zentral: „Vorgänge offen“, „Vorgänge Prio 1“ (Wert 100), drei Tageszähler
   (bearbeitet, neu, geschlossen), „Neuer Prio 1 Vorgang“ und Ereignisentität.
@@ -21,9 +21,9 @@ Der folgende Dokumentationscommit ändert weder Runtime-Version noch Dienste.
 
 ## Verifikation und Grenzen
 
-Die Suite enthält **86 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
+Die Suite enthält **99 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
 mit Python 3.13, HA Core 2025.6.3 und den Entwicklungsabhängigkeiten. Sie wurde
-bei dieser Dokumentationsübergabe erneut ausgeführt. `git diff --check` wird
+bei der Erweiterung um Benutzer-Tageszähler erneut ausgeführt. `git diff --check` wird
 auch für den Dokumentationsstand geprüft. Windows/WSL-Anleitung ist vorbereitet,
 aber auf keinem der Windows-Rechner des Nutzers ausgeführt worden.
 
@@ -34,17 +34,21 @@ aber nicht die korrekte Live-Zählung aller heute implementierten Funktionen.
 
 ## Bekannte Probleme / Einschränkungen
 
-1. **Benutzerbezogene Tageszähler fehlen.** Angefragt: „Bearbeitete Tickets heute“
-   und „Geschlossene Tickets heute“ pro ausführendem Benutzer. Zentrale Zähler
-   sind fertig, diese Benutzerzähler nicht.
-2. Die öffentliche Spezifikation bietet `ticket/{id}/statusChange` mit `user`,
-   `date`, `ticketStatus`, `source`. Damit sind Schließungen grundsätzlich
-   zuordenbar; diese Auswertung ist noch nicht implementiert.
-3. Die DocBee-Änderungskontrolle beschreibt Benutzer und Zeitpunkt allgemeiner
-   Änderungen, aber im geprüften OpenAPI-Dokument wurde kein Audit-Endpunkt
-   gefunden. Nutzer wurde um den Fetch/XHR-URL-Pfad beim Öffnen der Änderungskontrolle
-   gebeten. Er wurde bisher **nicht** geliefert. Ein nicht dokumentierter Browser-
-   Endpunkt ist nicht automatisch mit Bearer-Token nutzbar.
+1. **Benutzerbezogene Tageszähler sind implementiert, nicht live abgenommen.**
+   `actor.id` aus der Änderungshistorie ordnet INSERT/UPDATE zu internen Benutzern;
+   Statushistorie ordnet manuelle Schließungen über `user` und CLOSED-Zielstatus zu.
+   Pro Ticket/Benutzer wird dedupliziert; Automatisierungen zählen nicht als Benutzer.
+2. Für Statushistorie ist `/ticket/{id}/statusChange` dokumentiert. Kandidaten für
+   beide Zähler werden per `TICKET_MODIFIED` ermittelt; dabei muss DocBee auch bei
+   Statusänderungen das Änderungsdatum pflegen. Vollständig gelöschte/unsichtbare
+   Tickets sind nicht erfasst. Manuelle Schließungen werden über `source=USER` gefiltert.
+3. Nutzer lieferte `/ticket/{id}/history?exposeDeletedInExpand=true` und ein
+   JSON-Beispiel (Gruppenarray mit `items`, `actor`, `date`, `type`, `childItems`).
+   In OpenAPI 2026.2.0 weiterhin nicht dokumentiert; anonymer Abruf HTTP 401.
+   Bearer-Unterstützung, Zusatzrechte und serverseitige Vollständigkeit sind noch
+   unbestätigt. Keine Pagination-Metadaten im Beispiel; unsichtbare Kürzungen sind
+   nicht erkennbar. Fehler isolieren die betroffenen neuen Zähler, nicht die
+   bisherigen Integrationsfunktionen. Persönliche Beispielinhalte nicht gespeichert.
 4. `Invalid priority value` aus Nutzer-Screenshot wurde defensiv behandelt:
    Zahlenformen werden toleriert, sonst bleibt der Prio-1-Zähler unverfügbar.
    Originalantwort/Typ des problematischen Werts ist unbestätigt.

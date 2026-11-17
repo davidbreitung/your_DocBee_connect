@@ -4,10 +4,12 @@ import asyncio
 from decimal import Decimal, InvalidOperation
 import logging
 from typing import Any
+from urllib.parse import quote
 
 import aiohttp
 from yarl import URL
 
+from .activity import HistoryFormatError, closing_users, modified_users, timestamp
 from .models import DocBeeUser, DocBeeQueue, DocBeeSnapshot
 
 _LOGGER = logging.getLogger(__name__)
@@ -69,11 +71,18 @@ class DocBeeClient:
             raise ValueError("A nonempty single-line access token is required")
         self._token = token.strip()
 
-    async def _page(self, offset: int, resource: str = "user", fields: str = "id,username,name", filters: dict | None = None) -> Any:
+    async def _page(self, offset: int, resource: str = "user", fields: str = "id,username,name", filters: dict | None = None, *, sort: bool = True) -> Any:
+        params = {"fields": fields, "limit": PAGE_SIZE, "offset": offset}
+        if sort:
+            params["sortings"] = "id asc"
+        params.update(filters or {})
+        return await self._request(resource, params)
+
+    async def _request(self, resource: str, params: dict) -> Any:
         try:
             async with self._session.get(
                 f"{self.url}/restApi/v1/{resource}",
-                params={"fields": fields, "limit": PAGE_SIZE, "offset": offset, "sortings": "id asc", **(filters or {})},
+                params=params,
                 headers={"Accept": "application/json", "Authorization": f"Bearer {self._token}"},
                 timeout=aiohttp.ClientTimeout(total=30),
                 allow_redirects=False,
@@ -89,16 +98,17 @@ class DocBeeClient:
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
             raise DocBeeConnectionError("Unable to reach DocBee") from err
 
-    async def _list(self, resource: str, fields: str, filters: dict | None = None) -> list[dict]:
+    async def _list(self, resource: str, fields: str, filters: dict | None = None, *, result_key: str | None = None, sort: bool = True) -> list[dict]:
         """Fetch a complete list using DocBee's common pagination contract."""
+        key = result_key or resource
         items: dict[str, dict] = {}
         offset = 0
         expected_total: int | None = None
         for _ in range(MAX_PAGES):
-            payload = await self._page(offset, resource, fields, filters)
-            if not isinstance(payload, dict) or not isinstance(payload.get(resource), list):
+            payload = await self._page(offset, resource, fields, filters, sort=sort)
+            if not isinstance(payload, dict) or not isinstance(payload.get(key), list):
                 raise DocBeeResponseError(f"Expected the documented {resource} list")
-            rows = payload[resource]
+            rows = payload[key]
             for field in ("totalCount", "offset", "limit"):
                 if type(payload.get(field)) is not int or payload[field] < 0:
                     raise DocBeeResponseError("Invalid pagination metadata")
@@ -245,3 +255,77 @@ class DocBeeClient:
                 raise DocBeeResponseError("Invalid daily ticket count response")
             counts[key] = payload["totalCount"]
         return counts
+
+    async def async_get_user_daily_counts(self, start: str, end: str, user_ids: set[str]) -> dict:
+        """Isolate optional history failures from existing integration functionality."""
+        unavailable = {"modified_today_by_user": None, "closed_today_by_user": None}
+        start_time, end_time = timestamp(start), timestamp(end)
+        try:
+            candidates = await self._list("ticket", "id", {
+                "startDate": start, "endDate": end, "ticketScope": "TICKET_MODIFIED",
+            })
+        except DocBeeError as err:
+            _LOGGER.warning("User daily counts unavailable: candidate request failed (%s)", type(err).__name__)
+            return unavailable
+        modified = dict.fromkeys(user_ids, 0)
+        closed = dict.fromkeys(user_ids, 0)
+        if not candidates:
+            return {"modified_today_by_user": modified, "closed_today_by_user": closed}
+        closed_statuses: set[str] | None = set()
+        try:
+            for row in await self._list("ticketStatus", "id,behaviour"):
+                if row.get("behaviour") not in ("NORMAL", "PAUSED", "CLOSED"):
+                    raise DocBeeResponseError("Invalid ticket status behaviour")
+                if row["behaviour"] == "CLOSED":
+                    closed_statuses.add(str(row["id"]))
+        except DocBeeError as err:
+            _LOGGER.warning("User closing counts unavailable: status request failed (%s)", type(err).__name__)
+            closed_statuses = None
+
+        edit_errors: set[str] = set()
+        close_errors: set[str] = set()
+
+        async def inspect(ticket: dict) -> tuple[set[str] | None, set[str] | None]:
+            ticket_path = f"ticket/{quote(str(ticket['id']), safe='')}"
+            editors = None
+            closers = None
+            try:
+                history = await self._request(f"{ticket_path}/history", {"exposeDeletedInExpand": "true"})
+                editors = modified_users(history, start_time, end_time)
+            except (DocBeeError, HistoryFormatError) as err:
+                edit_errors.add(type(err).__name__)
+            if closed_statuses is not None:
+                try:
+                    rows = await self._list(
+                        f"{ticket_path}/statusChange", "id,user,date,ticketStatus,source",
+                        result_key="statusChange", sort=False,
+                    )
+                    closers = closing_users(rows, closed_statuses, start_time, end_time)
+                except (DocBeeError, HistoryFormatError) as err:
+                    close_errors.add(type(err).__name__)
+            return editors, closers
+
+        modified_complete = True
+        closed_complete = closed_statuses is not None
+        # Bound request concurrency and task count; never fire one request per user.
+        for offset in range(0, len(candidates), 4):
+            results = await asyncio.gather(*(inspect(ticket) for ticket in candidates[offset:offset + 4]))
+            for editors, closers in results:
+                if editors is None:
+                    modified_complete = False
+                else:
+                    for user in editors & user_ids:
+                        modified[user] += 1
+                if closers is None:
+                    closed_complete = False
+                else:
+                    for user in closers & user_ids:
+                        closed[user] += 1
+        if edit_errors:
+            _LOGGER.warning("User editing counts unavailable: history request/format failed (%s)", ", ".join(sorted(edit_errors)))
+        if close_errors:
+            _LOGGER.warning("User closing counts unavailable: history request/format failed (%s)", ", ".join(sorted(close_errors)))
+        return {
+            "modified_today_by_user": modified if modified_complete else None,
+            "closed_today_by_user": closed if closed_complete else None,
+        }

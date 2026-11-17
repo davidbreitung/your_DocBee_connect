@@ -6,7 +6,11 @@ Sensoren zählen nicht abgeschlossene Vorgänge je Verantwortlichem und Queue so
 insgesamt und mit Prioritätswert 100. Benutzername, Rolle und Aktiv-Status (Ja/Nein) sind eigene Entitäten.
 Die Integrationsansicht trennt die Geräte in die Bereiche **Zentrale Konfiguration**,
 **Benutzer** und **Queues**. Tageszähler zeigen heute bearbeitete, neu erstellte
-und geschlossene Vorgänge anhand der Home-Assistant-Zeitzone.
+und geschlossene Vorgänge anhand der Home-Assistant-Zeitzone. Pro Benutzer werden
+heute bearbeitete und geschlossene Tickets anhand der ausführenden Person aus
+Änderungs-/Statushistorien gezählt. Der nicht öffentlich dokumentierte
+History-Endpunkt ist anhand einer bereitgestellten Antwort implementiert; eine
+authentifizierte Live-Abnahme steht aus.
 Neu erkannte Prio-1-Vorgänge lösen ein Home-Assistant-Ereignis aus; die letzte
 Vorgangsnummer wird auf dem zentralen Gerät angezeigt. Die Erkennung erfolgt
 beim Fünf-Minuten-Abruf, mit Ausgangsbestand ohne Auslösung nach einem Neustart.

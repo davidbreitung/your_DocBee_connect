@@ -20,7 +20,9 @@ USERS = {'1': DocBeeUser('1', 'alice', 'Alice Example', '17', 'Techniker', True)
 
 @pytest.fixture(autouse=True)
 def daily_counts():
-    with patch('custom_components.docbee.api.DocBeeClient.async_get_daily_counts', return_value={
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_user_daily_counts', return_value={
+        'modified_today_by_user': {'1': 4, '2': 0}, 'closed_today_by_user': {'1': 2, '2': 0},
+    }), patch('custom_components.docbee.api.DocBeeClient.async_get_daily_counts', return_value={
         'modified_today': 7, 'created_today': 3, 'closed_today': 2,
     }):
         yield
@@ -82,6 +84,9 @@ async def test_devices_sensors_updates_and_unload(hass):
     assert state('central:open_tickets') == '5'
     assert state('central:priority_one_tickets') == '1'
     assert len([d for d in devices if d.model == 'Queues']) == 1
+    assert state('user:1:modified_today_by_user') == '4'
+    assert state('user:1:closed_today_by_user') == '2'
+    assert state('user:2:modified_today_by_user') == '0'
     assert state('central:modified_today') == '7'
     assert state('central:created_today') == '3'
     assert state('central:closed_today') == '2'
@@ -119,6 +124,8 @@ async def test_devices_sensors_updates_and_unload(hass):
     coordinator.async_set_updated_data(snapshot())
     await hass.async_block_till_done()
     assert state('central:priority_one_tickets') == '1'
+    assert state('user:1:modified_today_by_user') == 'unavailable'
+    assert state('user:1:closed_today_by_user') == 'unavailable'
     coordinator.async_set_update_error(DocBeeConnectionError())
     await hass.async_block_till_done()
     assert hass.states.get(alice_id).state == 'unavailable'
@@ -275,6 +282,9 @@ async def test_daily_counts_follow_ha_timezone_and_dst(hass, now, start):
     client.async_get_snapshot = AsyncMock(return_value=snapshot())
     client.async_get_daily_counts = AsyncMock(return_value={
         'modified_today': 0, 'created_today': 0, 'closed_today': 0,
+    })
+    client.async_get_user_daily_counts = AsyncMock(return_value={
+        'modified_today_by_user': {}, 'closed_today_by_user': {},
     })
     coordinator = DocBeeCoordinator(hass, entry, client)
     with patch('custom_components.docbee.coordinator.dt_util.utcnow', return_value=datetime.fromisoformat(now)):

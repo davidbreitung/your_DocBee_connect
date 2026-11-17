@@ -1,7 +1,7 @@
 # Übergabe – zuerst lesen
 
 **Stand 17.11.2026.** Projekt: **Your Docbee Connect**, Home-Assistant-Integration
-für DocBee. Runtime **0.3.1**, letzter Codecommit **`247eb17`**, Entwicklungsbranch
+für DocBee. Runtime **0.4.0** (neuester Codecommit: `git log -1`), Entwicklungsbranch
 **`main`**, Repository [davidbreitung/your_DocBee_connect](https://github.com/davidbreitung/your_DocBee_connect).
 Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chatimport.
 
@@ -11,7 +11,7 @@ Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chati
 2. `AGENTS.md`, diese Datei, `STATUS.md` und `TODO.md` lesen. Bei technischen
    Fragen `ARCHITECTURE.md` und `DECISIONS.md` hinzunehmen.
 3. Linux-/WSL-Testumgebung gemäß [Windows-Anleitung](WINDOWS_SETUP.md) einrichten.
-4. `python -m pytest -q`: bisher **86 Tests grün**, keine DocBee-Zugangsdaten nötig.
+4. `python -m pytest -q`: bisher **99 Tests grün**, keine DocBee-Zugangsdaten nötig.
 5. Noch nicht implementierte Arbeit nicht aus Chat-Zusammenfassungen als fertig
    ableiten. Vorher aktuellen Git-Diff/Log ansehen; keine alten Änderungen neu anwenden.
 
@@ -67,28 +67,39 @@ Polling, Tests und ausführliches [Handbuch](HANDBUCH.md).
 - `ec64ac2`, 0.3.0: Prio-1-Ereignisse und letzte Vorgangsnummer.
 - `247eb17`, 0.3.1: drei **zentrale** Tageszähler, 86 Tests.
 
-Danach wurden die **benutzerbezogenen** Tageszähler diskutiert, noch nicht gebaut.
-Die jetzige Arbeit sichert ausschließlich Dokumentation und Rechnerwechselablauf.
+Nach dem Kontextcommit `5465354` lieferte der Nutzer den History-Pfad und eine
+Beispielantwort. Version 0.4.0 ergänzt jetzt die benutzerbezogenen Tageszähler;
+der Commit dieser Erweiterung ist über `git log` ersichtlich.
 
 ## Woran wir zuletzt fachlich gearbeitet haben
 
-Der Nutzer will zusätzlich pro Benutzer „Bearbeitete Tickets heute“ und
-„Geschlossene Tickets heute“ nach der tatsächlich ausführenden Person.
+**Neu bestätigt:** Der Nutzer lieferte den Pfad
+`/restApi/v1/ticket/{id}/history?exposeDeletedInExpand=true` und eine Beispielantwort:
+Array von Gruppen mit `items`; Einträge haben `actor.id`, `actorType`, `userType`,
+`date`, `type`, `messages`, `childItems`. Wichtig: Einträge einer Gruppe können
+verschiedene Daten haben; immer das Einzeldatum auswerten. Persönliche Namen,
+reale Ticket-/Benutzer-IDs und Texte wurden nicht ins Repository übernommen.
 
-**Bestätigt durch Dokumentationsprüfung:** `modified` am Ticket enthält nur den
-Zeitpunkt; `owner` ist nicht der Bearbeiter. `GET /v1/ticket/{id}/statusChange`
-liefert `user`, `date`, `ticketStatus`, `source` und ist für Schließungen brauchbar.
-Die allgemeine Änderungskontrolle beschreibt laut DocBee Benutzer und Zeitpunkt
-aller Änderungen. In der geprüften OpenAPI wurde jedoch kein Audit-Endpunkt gefunden.
+**Implementiert in 0.4.0:** „Bearbeitete Tickets heute“ je Benutzer zählt INSERT/
+UPDATE mit `actorType=user`, `userType=USER`. „Geschlossene Tickets heute“ zählt
+Statushistorien mit `source=USER`, `user`, `date` und CLOSED-Zielstatus. Beide
+zählen unterschiedliche Tickets pro Benutzer; `owner` ist dafür irrelevant.
+Automatisierungen/Mail-Parser zählen nicht als Benutzeraktivität. Die Kandidaten
+kommen aus heute geänderten Tickets, auch bereits geschlossenen. Zeitfenster:
+HA-Zeitzone, Mitternacht bis Abrufzeitpunkt. Maximal vier parallele Ticketprüfungen.
+Fehlende/ungültige Einzelhistorien verhindern irreführende Teilzahlen und betreffen
+nur den jeweiligen neuen Zähler. Bestehende Sensoren bleiben nutzbar.
 
-**Offen:** Der Nutzer wurde um den URL-Pfad unter Browser-Entwicklertools →
-Netzwerk → Fetch/XHR beim Öffnen der Änderungskontrolle gebeten, ohne Tokens/Cookies.
-Er lieferte erneut die bekannte Doku-URL, aber noch keinen solchen Anfragepfad.
-Ein Audit-Endpunkt kann existieren, ist aktuell aber nicht bestätigt.
+**Noch unbestätigt:** Anonymer Abruf liefert HTTP 401. History fehlt weiterhin in
+der geprüften OpenAPI; Bearer-Unterstützung und Vollständigkeit müssen in der
+Nutzerinstanz geprüft werden. Das Beispiel enthält keine Pagination-Angaben.
+Statushistorie ist dokumentiert und wird regulär paginiert. Die Kandidatenwahl
+setzt voraus, dass DocBee bei jeder relevanten Aktion `modified` aktualisiert.
 
-**Nächster fachlicher Schritt:** Schließungszähler anhand Statushistorie unabhängig
-untersuchen; für allgemeine Bearbeitungszählung Audit-Zugriff klären. Details und
-Abnahmekriterien: [TODO](TODO.md). Nicht `owner` als Ersatz-Bearbeiter verwenden.
+**Nächster Schritt:** Nutzer aktualisiert und prüft echte Fälle; bei nicht
+verfügbaren Zählern anonymisierten Antwortstatus/Schema erheben, keine Tokens
+anfordern. Ein fehlender History-Zugriff blockiert die unabhängige Schließungszählung
+nicht. Tests: 99 bestanden mit synthetischen Historiendaten. Details in TODO/Handbuch.
 
 ## Was diese Sicherung nicht enthält
 

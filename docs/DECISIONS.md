@@ -28,12 +28,26 @@ inhaltlich; wo keine genaue Entscheidungszeit vorliegt, wird keine erfunden.
 
 ## Noch nicht entschieden / nicht implementiert
 
-- API-Zugang zum allgemeinen Änderungsprotokoll (nicht in geprüfter öffentlicher
-  OpenAPI gefunden); damit keine belastbare allgemeine Bearbeiterzählung.
-- Details der benutzerbezogenen Schließungszählung: pro Person unterschiedliche
-  Tickets, Umgang mit Wiederöffnen/mehrfacher Schließung und automatischen Quellen.
-  Dokumentierte Statushistorie bietet eine Grundlage, noch keine fertige Umsetzung.
+- History-Pfad und Beispiel sind inzwischen vorhanden (siehe Ergänzung unten).
+  Bearer-Zugriff und Vollständigkeit bleiben ohne Live-Abnahme offen.
+- Schließungszählung ist seit 0.4.0 implementiert: unterschiedliche Tickets pro
+  Person, Quelle USER; Wiederöffnen hebt eine heutige Schließung nicht auf.
+  Die Live-Abnahme der Kandidatenauswahl bleibt offen.
 - Webhook, kürzeres/einstellbares Polling und „Jetzt aktualisieren“-Button wurden
   als Ideen genannt, aber nicht als umgesetzte oder freigegebene Funktionen behandeln.
 - Vollständige automatische Synchronisierung lokaler Codex-Sitzungen zwischen
   zwei Windows-Rechnern ist nicht verifiziert; siehe Windows-Anleitung.
+
+## Ergänzung 17.11.2026 – Benutzer-Tageszähler
+
+- D21: Gelieferte History-Struktur verwenden (`actor.id`, Einzeldatum), keine
+  Suche nach Benutzernamen in HTML-Meldungen. INSERT/UPDATE interner Benutzer
+  zählen, Automatisierung/Mail-Parser nicht. Reale Beispielinhalte nicht speichern.
+- D22: Dokumentierte Statushistorie für Schließungen; Zielstatus CLOSED und Quelle
+  USER. Pro Person und Ticket einmal zählen, auch bei Wiederöffnen/erneutem Schließen.
+- D23: Historienfehler isolieren: kein Startabbruch der bisherigen Integration und
+  keine falschen Null-/Teilwerte. Je betroffenen Zählertyp nicht verfügbar melden.
+- D24: History-Endpunkt ist bislang nur durch Nutzerpfad/Beispiel belegt, nicht
+  öffentlich spezifiziert oder mit Bearer authentifiziert geprüft. Kein Paging
+  erfinden; Vollständigkeit in der Nutzerinstanz prüfen. Bis zu vier Ticketprüfungen
+  gleichzeitig, um den Server nicht mit Anfragen pro Benutzer zu belasten.

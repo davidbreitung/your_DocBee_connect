@@ -29,7 +29,7 @@ async def async_setup_entry(
     @callback
     def add_devices() -> None:
         for kind, records, keys in (
-            ("user", coordinator.data.users, ("username", "role", "active", "assigned_tickets")),
+            ("user", coordinator.data.users, ("username", "role", "active", "assigned_tickets", "modified_today_by_user", "closed_today_by_user")),
             ("queue", coordinator.data.queues, ("current_tickets",)),
         ):
             entities = []
@@ -59,7 +59,7 @@ class DocBeeSensor(CoordinatorEntity[DocBeeCoordinator], SensorEntity):
         suffix = kind if identifier is None else f"{kind}:{identifier}"
         self._attr_unique_id = f"{entry_id}:{suffix}:{key}"
         self._attr_icon = "mdi:account" if key == "username" else "mdi:ticket-outline"
-        if key in ("assigned_tickets", "current_tickets", "open_tickets", "priority_one_tickets", "modified_today", "created_today", "closed_today"):
+        if key in ("assigned_tickets", "current_tickets", "open_tickets", "priority_one_tickets", "modified_today", "created_today", "closed_today", "modified_today_by_user", "closed_today_by_user"):
             self._attr_state_class = SensorStateClass.MEASUREMENT
         elif key == "role":
             self._attr_icon = "mdi:account-key"
@@ -98,6 +98,8 @@ class DocBeeSensor(CoordinatorEntity[DocBeeCoordinator], SensorEntity):
             return False
         if self._key == "priority_one_tickets":
             return self.coordinator.data.priority_one_tickets is not None
+        if self._key in ("modified_today_by_user", "closed_today_by_user"):
+            return self._device_info() is not None and getattr(self.coordinator.data, self._key) is not None
         return self._device_info() is not None
 
     @property
@@ -116,6 +118,9 @@ class DocBeeSensor(CoordinatorEntity[DocBeeCoordinator], SensorEntity):
         if self._key == "active":
             enabled = data.users[self._identifier].enabled
             return None if enabled is None else ("yes" if enabled else "no")
+        if self._key in ("modified_today_by_user", "closed_today_by_user"):
+            counts = getattr(data, self._key)
+            return counts.get(self._identifier, 0) if counts is not None else None
         return data.assigned_tickets.get(self._identifier, 0)
 
     @property

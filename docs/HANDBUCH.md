@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.3.1 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.4.0 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -79,7 +79,7 @@ HTTP und Weiterleitungen werden nicht akzeptiert.
 | Typ | Gerätename | Modell | Entitäten |
 | --- | --- | --- | --- |
 | Zentrale Konfiguration | Zentrale Konfiguration | Zentrale Konfiguration | „Vorgänge offen“, „Vorgänge Prio 1“, „Neuer Prio 1 Vorgang“, Ereignis „Prio 1 Vorgangsereignis“, „Bearbeitete Tickets heute“, „Anzahl neue Tickets heute“, „Geschlossene Tickets heute“ |
-| Benutzer | Anzeigename (`name`) aus DocBee | Benutzer | „Benutzername“, „Rolle“, „Aktiv“, „Zugewiesene Vorgänge“ |
+| Benutzer | Anzeigename (`name`) aus DocBee | Benutzer | „Benutzername“, „Rolle“, „Aktiv“, „Zugewiesene Vorgänge“, „Bearbeitete Tickets heute“, „Geschlossene Tickets heute“ |
 | Queue | Queue-Name aus DocBee | Queues | „Aktuelle Tickets“ |
 
 Das zentrale Gerät wird ausdrücklich registriert. Jeder Benutzer und jede Queue
@@ -192,6 +192,70 @@ Listenabfrage mit `limit=1`, `startDate`, `endDate` und dem jeweiligen `ticketSc
 gestellt und `totalCount` ausgewertet. So funktionieren die Zähler auch über
 50 Tickets hinaus, ohne alle Treffer herunterladen zu müssen. Ungültige Antworten
 werden nicht als null Vorgänge ausgegeben.
+
+## Tageszähler je Benutzer
+
+Version 0.4.0 ergänzt auf jedem Benutzergerät:
+
+- **Bearbeitete Tickets heute:** Unterschiedliche Tickets, deren Änderungshistorie
+  heute einen `INSERT`- oder `UPDATE`-Eintrag dieses Benutzers enthält. Verwendet
+  werden `actor.id`, `actorType=user`, `userType=USER` und **das Datum des einzelnen
+  Eintrags**, nicht das Datum der äußeren Gruppe. Das umfasst auch manuell erstellte
+  Tickets. Automatisierungen, Mail-Parser und Kundenbenutzer werden ausgeschlossen.
+  `actor.enabled` beeinflusst die historische Zuordnung nicht.
+- **Geschlossene Tickets heute:** Unterschiedliche Tickets mit heutigem
+  Statuswechsel dieses Benutzers auf einen Status mit `behaviour=CLOSED`.
+  Die Statushistorie liefert `user`, `date`, `ticketStatus`, `source`; gezählt
+  werden nur Einträge mit `source=USER`, nicht automatische oder API-Quellen.
+  Späteres Wiederöffnen entfernt einen zuvor erfolgten Abschluss nicht aus der
+  Tageszählung. Mehrere Abschlüsse desselben Tickets durch denselben Benutzer
+  zählen einmal; haben zwei Personen es geschlossen, zählt es für jede einmal.
+
+Der Verantwortliche (`owner`) ist für diese Zähler unerheblich. Die Summe der
+Benutzerzähler muss nicht dem zentralen Tageszähler entsprechen: mehrere Personen
+können dasselbe Ticket bearbeiten, automatische Änderungen sind zentral enthalten,
+und die zentrale Schließungsabfrage wertet keine gesamte Historie aus.
+
+### Datenquelle und Grenzen
+
+Der Nutzer lieferte den Browser-Pfad
+`GET /restApi/v1/ticket/{id}/history?exposeDeletedInExpand=true` und eine
+Beispielantwort als Array von Gruppen mit `items` und optional verschachtelten
+`childItems`. Der Client verarbeitet diese Struktur, ohne Meldungstexte oder Namen
+zu speichern oder zu protokollieren. Verschachtelte Einträge müssen eigene
+Akteur-/Datumsdaten besitzen; keine Zuordnung über den Elternnamen wird geraten.
+Dieser Endpunkt steht **nicht** in der geprüften OpenAPI. Seine Bearer-Unterstützung
+und Vollständigkeit sind noch nicht live verifiziert. Ein Abruf ohne Anmeldung
+lieferte HTTP 401. Das Beispiel enthält keine Pagination-Metadaten; es wird das
+vollständige zurückgegebene Array verarbeitet. Eine nicht erkennbare serverseitige
+Kürzung kann die Zählung einschränken und muss bei der Live-Abnahme geprüft werden.
+
+Für Schließungen wird der dokumentierte Endpunkt
+`GET /restApi/v1/ticket/{id}/statusChange` mit regulärer Pagination gelesen.
+Die Statusdefinitionen kommen aus `/restApi/v1/ticketStatus`. Kandidaten für beide
+Zähler sind alle heute laut `TICKET_MODIFIED` geänderten sichtbaren Tickets,
+ohne `notClosed`-Filter. Damit werden auch heute bearbeitete geschlossene oder
+wieder geöffnete Tickets untersucht. Voraussetzung ist, dass DocBee das
+Änderungsdatum bei diesen Aktionen aktualisiert. Gelöschte/nicht mehr sichtbare
+Tickets können nicht nachträglich vollständig erfasst werden.
+
+Zeitfenster und Aktualisierung entsprechen den zentralen Tageszählern: HA-Zeitzone,
+Mitternacht bis Abrufzeitpunkt, alle fünf Minuten. Es werden bis zu vier Tickets
+parallel untersucht; je Ticket sind bis zu zwei Historienabfragen nötig, bei
+mehreren Statusseiten entsprechend mehr. Bei großen Tagesmengen kann der Abruf
+länger dauern. Keine Historie wird pro Benutzer mehrfach geladen.
+
+Fehlt ein Kandidatenabruf, sind beide Benutzer-Tageszähler nicht verfügbar.
+Fehlt nur eine Bearbeitungshistorie, wird kein unvollständiger Bearbeitungszähler
+als Zahl ausgegeben; die Schließungszählung kann weiter funktionieren und umgekehrt.
+Andere bestehende Sensoren und Ereignisse bleiben bei diesen Zusatzfehlern aktiv.
+Der Token benötigt passende Leserechte für Historien und Ticketstatus. Eine
+Browser-Session wird nicht übernommen; Cookies werden nicht benötigt oder gespeichert.
+
+Zur Abnahme ein Ticket durch Benutzer A mehrfach ändern, durch B einmal ändern,
+schließen, wieder öffnen und erneut schließen. Beide Personen müssen je ein
+bearbeitetes Ticket erhalten; der Schließende je ein geschlossenes. Eine reine
+Regel-/Mail-Parser-Aktion darf keinem Benutzer zugerechnet werden.
 
 ## Ereignis bei neuen Prio-1-Vorgängen
 

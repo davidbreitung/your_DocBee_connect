@@ -1,7 +1,6 @@
 # Technische Architektur
 
-Stand: 17.11.2026; analysierte Implementierung: Version 0.3.1, Commit `247eb17`.
-Diese Dokumentationsänderung verändert die Laufzeitarchitektur nicht.
+Stand: 17.11.2026; analysierte Implementierung: Version 0.4.0 (vorheriger Funktionsstand 0.3.1: `247eb17`).
 
 ## Systemgrenzen und Technologien
 
@@ -32,6 +31,7 @@ flowchart LR
 | `__init__.py` | Setup, erster Abruf, Store laden, Gruppen vorbereiten, Sensor-/Event-Plattform laden, Unload/Store-Cleanup |
 | `config_flow.py` | URL und Token im UI prüfen, doppelte Instanzen verhindern, Token erneuern |
 | `api.py` | HTTPS/Bearer-GET, keine Weiterleitungen, Timeout, Fehlerklassen, vollständige Pagination, Datenvalidierung und Aggregation |
+| `activity.py` | Reine Parser für gruppierte Änderungshistorie und Statushistorie; Datumsfilter, Akteurfilter, Deduplizierung ohne Speicherung von Nachrichtentexten |
 | `models.py` | `DocBeeUser`, `DocBeeQueue`, `DocBeeSnapshot` als Dataclasses |
 | `coordinator.py` | Regelmäßige Updates, HA-Zeitzone/Tageszähler, Prio-1-Vergleich und Ereignisse, lokale Speicherung |
 | `devices.py` | Stabile Gerätekennungen und Metadaten; Anzeigename aus `name`, Ersatz `username` |
@@ -99,7 +99,7 @@ aktualisieren, dann Root-Verknüpfung entfernen. Eine frühere Testvariante entf
 Root zuerst und löschte dadurch Entities; der Migrationstest schützt diese Reihenfolge.
 
 Benutzer bekommen Benutzername, Rolle, Aktiv (`yes`/`no`, lokalisiert Ja/Nein),
-zugewiesene nicht geschlossene Vorgänge. Queues bekommen aktuelle nicht geschlossene
+zugewiesene nicht geschlossene Vorgänge und zwei benutzerbezogene Tageszähler. Queues bekommen aktuelle nicht geschlossene
 Tickets. Zentrale Sensoren und ihre exakten Bedeutungen stehen im Handbuch.
 Entfernte Benutzer/Queues bleiben registriert und werden nicht verfügbar.
 
@@ -126,3 +126,26 @@ Einrichtungsdialoge, Registry, Updates, Migration, Ereignisse/Reload und Zeitzon
 `tests/test_devices.py`: Identitätsinvarianten. Kein Test benötigt echte Tokens.
 Keine CI-Konfiguration, kein Frontend-End-to-End-Test und keine produktive
 DocBee-Testinstanz sind derzeit im Repository eingerichtet.
+
+## Benutzerbezogene Historienauswertung (0.4.0)
+
+Nach den zentralen Tagesabfragen ruft der Coordinator `async_get_user_daily_counts`
+auf. Kandidaten: vollständige Ticketliste mit `TICKET_MODIFIED` im Tagesfenster.
+Pro Kandidat: `/ticket/{id}/history?exposeDeletedInExpand=true` (bereitgestelltes
+Gruppenarray) und `/ticket/{id}/statusChange` (dokumentiertes `statusChange`-Array
+mit Pagination, ohne nicht dokumentierten Sortierparameter). Statusdefinitionen
+kommen einmal pro Abruf aus `ticketStatus` mit `id,behaviour`.
+
+`activity.py` ignoriert Gruppendatum, Namen und Meldungstexte. Für Bearbeitungen
+zählen INSERT/UPDATE interner Benutzer nach Einzeldatum; verschachtelte Einträge
+werden anhand eigener Felder ausgewertet. Schließungen zählen Quelle USER und
+Zielstatus CLOSED. Mengen pro Ticket verhindern Mehrfachzählung pro Benutzer.
+`modified_today_by_user` und `closed_today_by_user` sind jeweils ein ID→Anzahl-
+Dictionary oder `None` bei unvollständigen Daten. Die Sensoren behandeln `None`
+als nicht verfügbar, nicht als Nullzahl. Beide Teilbereiche sind unabhängig.
+
+Vier Ticketprüfungen laufen gleichzeitig; Gesamtaufwand wächst mit Tageskandidaten
+und Statushistorienseiten. History-Array-Pagination ist unbekannt; keine erfundenen
+Query-Parameter. Bearer-Zugriff auf diesen undokumentierten Endpunkt wurde noch
+nicht mit einer authentifizierten Instanz validiert. Hier ist eine Live-Abnahme
+notwendig, bevor Vollständigkeit zugesichert werden kann.

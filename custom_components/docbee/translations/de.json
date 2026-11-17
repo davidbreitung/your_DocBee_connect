@@ -67,6 +67,12 @@
       },
       "closed_today": {
         "name": "Geschlossene Tickets heute"
+      },
+      "modified_today_by_user": {
+        "name": "Bearbeitete Tickets heute"
+      },
+      "closed_today_by_user": {
+        "name": "Geschlossene Tickets heute"
       }
     },
     "event": {

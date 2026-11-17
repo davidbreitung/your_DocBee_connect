@@ -56,3 +56,5 @@ class DocBeeSnapshot:
     modified_today: int | None = None
     created_today: int | None = None
     closed_today: int | None = None
+    modified_today_by_user: dict[str, int] | None = None
+    closed_today_by_user: dict[str, int] | None = None

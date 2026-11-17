@@ -4,24 +4,24 @@ Stand 17.11.2026. Prioritäten: P1 = nächster fachlicher Schritt, P2 = Absicher
 P3 = optionale Idee. Diese Liste ist keine Aufforderung, ohne neuen Arbeitsauftrag
 Produktivsysteme zu ändern oder sämtliche Ideen umzusetzen.
 
-## P1 – Benutzerbezogene Tageszähler (Nutzerauftrag, noch offen)
+## P1 – Benutzerbezogene Tageszähler: Live-Abnahme
 
-- [ ] **Geschlossene Tickets heute pro Benutzer:** dokumentierten Endpunkt
-  `/restApi/v1/ticket/{id}/statusChange` auswerten. `user` ist ausführender Benutzer,
-  `date` Zeitpunkt, Zielstatus über `ticketStatus.behaviour == CLOSED` bestimmen.
-  Pagination, Quellen/automatische Aktionen und Zeitzone beachten. Keine Gleichsetzung
-  mit `owner`. Tickets pro Person deduplizieren; wiederholte Schließungen und
-  Wiederöffnung in Tests abdecken. Effiziente Kandidatenabfrage prüfen: allein
-  heutiger *letzter* Schließungszeitpunkt könnte bestimmte Historienfälle auslassen.
-- [ ] **Bearbeitete Tickets heute pro Benutzer:** Audit-Zugriff zuerst klären.
-  Aktueller Blocker: Fetch/XHR-Pfad der allgemeinen Änderungskontrolle fehlt.
-  Falls geliefert, Schema, Pagination, Authentifizierung, Benutzer-/Objekt-ID und
-  Datumsfilter prüfen. Keine Session-Cookies in Integration oder Repository übernehmen.
-  Ohne unterstützten Zugang Funktion als blockiert melden, nicht heimlich nur
-  Verantwortliche oder Statusänderungen zählen.
-- [ ] Beide Benutzerzähler nach belegtem Datenvertrag implementieren, testen und
-  Handbuch/Version aktualisieren. Schließungszähler ist unabhängig vom Audit-Blocker
-  untersuchbar; die beiden Aufgaben nicht fälschlich als vollständig blockiert behandeln.
+- [x] History-Pfad und Beispielstruktur erhalten. `actor.id`/Einzeldatum verwenden,
+  INSERT/UPDATE interner Benutzer zählen; Automatisierung/Mail-Parser ausschließen.
+- [x] Benutzer-Schließungszähler über dokumentierte Statushistorie implementieren;
+  CLOSED-Zielstatus und Quelle USER, Ticket/Benutzer deduplizieren, Wiederöffnung
+  und Mehrfachschließung berücksichtigen.
+- [x] Anzeigen, Tests, Handbuch und Kontext aktualisieren (Version 0.4.0).
+- [ ] **Live prüfen:** Akzeptiert `/ticket/{id}/history` den vorhandenen Bearer-Token?
+  Welche Berechtigung ist nötig? Kein Token/Cookie im Chat erforderlich.
+- [ ] Vollständigkeit der History-Antwort bei langen Historien prüfen. Bisheriges
+  Beispiel ist ein Gruppenarray ohne Pagination-Metadaten; keine unbekannten
+  Paging-Parameter erfinden. Abweichende Schemas anonymisiert untersuchen.
+- [ ] Vergleich mit DocBee: zwei Benutzer ändern dasselbe Ticket, wiederholte
+  Änderungen, automatische Änderung, schließen/wieder öffnen/erneut schließen.
+  Prüfen, dass `TICKET_MODIFIED` alle relevanten Vorgänge als Kandidaten liefert.
+- [ ] Last/Antwortzeit bei vielen heute geänderten Tickets messen. Maximal vier
+  parallele Ticketprüfungen; Statushistorien paginiert, keine unbestätigte Cache-Lösung.
 
 ## P2 – Verifikation und Reproduzierbarkeit
 
@@ -29,7 +29,7 @@ Produktivsysteme zu ändern oder sämtliche Ideen umzusetzen.
   zentral, Rolle/Aktiv, Tagesgrenzen und Ereignis). Keine Tokens im Chat verlangen.
 - [ ] Falls Prio-1-Sensor weiter unverfügbar: anonymisierten Datentyp/Schema prüfen;
   bisheriger Screenshot erklärt nicht den tatsächlichen Rohwert.
-- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 86 Tests ausführen,
+- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 99 Tests ausführen,
   Git-Roundtrip A → B → A bestätigen. Anleitung bislang nur auf Linux-Basis vorbereitet.
 - [ ] Prüfen, ob aktuelle Desktop-App-Version Cloud-/Remote-Chats offiziell
   geräteübergreifend fortsetzen kann. Installierte Version und Kontokonfiguration

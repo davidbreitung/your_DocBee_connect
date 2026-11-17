@@ -97,7 +97,7 @@ geteilt. Das Repository wird nicht ein zweites Mal geklont: `/mnt/c/src/...`
 ist derselbe Checkout wie `C:\src\...`. Git-Synchronisierung in diesem Ablauf
 über Git for Windows ausführen; nicht gleichzeitig aus Windows und WSL verändern.
 
-Erwartete Testbasis dieses Stands: **86 bestandene Tests**. Native Builds können
+Erwartete Testbasis dieses Stands: **99 bestandene Tests**. Native Builds können
 bei der ersten Einrichtung dauern. Fehler wie fehlende `Python.h` sprechen für
 einen ungeeigneten Interpreter ohne Header; deshalb der managed Python oben.
 `pycares==4.9.0` ist absichtlich gepinnt. Bei Installationsfehlern nicht blind
