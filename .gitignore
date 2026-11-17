@@ -3,3 +3,21 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+
+# Local credentials and machine-specific Codex state (never sync raw sessions)
+.env
+.env.*
+!.env.example
+/.codex/
+
+# Local Home Assistant instances and private diagnostic exports
+/ha-config/
+/local/
+*.har
+
+# Recreated development output
+.coverage
+.coverage.*
+htmlcov/
+Thumbs.db
+.DS_Store

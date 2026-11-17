@@ -24,6 +24,14 @@ und Home Assistant neu starten. Anschließend unter **Einstellungen → Geräte 
 Dienste → Integration hinzufügen → Your Docbee Connect** einrichten. Die vollständigen Schritte
 stehen im Handbuch.
 
+Projektkontext und Rechnerwechsel:
+
+- [Codex-Projektanweisungen](AGENTS.md)
+- [Übergabe / aktueller Arbeitskontext](docs/HANDOVER.md)
+- [Status](docs/STATUS.md) und [offene Aufgaben](docs/TODO.md)
+- [Architektur](docs/ARCHITECTURE.md) und [Entscheidungen](docs/DECISIONS.md)
+- [Windows-Einrichtung und Synchronisierung über GitHub](docs/WINDOWS_SETUP.md)
+
 Entwicklung (Python 3.13):
 
 ```sh
