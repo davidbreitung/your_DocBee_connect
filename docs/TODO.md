@@ -27,10 +27,10 @@ Produktivsysteme zu ändern oder sämtliche Ideen umzusetzen.
 
 - [ ] Live-Abnahme durch Nutzer: Werte mit DocBee vergleichen (Benutzer, Queue,
   zentral, Rolle/Aktiv, Tagesgrenzen und Ereignis). Keine Tokens im Chat verlangen.
-- [ ] Falls Prio-1-Sensor weiter unverfügbar: anonymisierten Datentyp/Schema prüfen;
-  Screenshot bestätigt fehlend/null. Detail-Fallback aus 0.4.1 live prüfen;
-  bei weiterem Fehler anonymisierte Listen-/Detailantwort vergleichen.
-- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 106 Tests ausführen,
+- [x] Fehlendes Zahlenfeld bestätigt; explizite Prioritätsauswahl in 0.5.0 umgesetzt.
+- [ ] 0.5.0 live prüfen: Priorität über Konfigurieren wählen, Zähler und Ereignis
+  bei neuer Prioritätszuordnung prüfen; Speichern darf keine Altalarme auslösen.
+- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 114 Tests ausführen,
   Git-Roundtrip A → B → A bestätigen. Anleitung bislang nur auf Linux-Basis vorbereitet.
 - [ ] Prüfen, ob aktuelle Desktop-App-Version Cloud-/Remote-Chats offiziell
   geräteübergreifend fortsetzen kann. Installierte Version und Kontokonfiguration

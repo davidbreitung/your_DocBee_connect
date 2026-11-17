@@ -87,5 +87,24 @@
         }
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Prio-1-Auswahl",
+        "description": "Wähle eine oder mehrere Prioritäten für Zähler und Ereignisse. Die IDs bleiben bei Umbenennungen erhalten. Eine leere Auswahl verwendet den bisherigen Zahlenwert 100. Speichern lädt die Anbindung neu, ohne Ereignisse für bestehende Tickets auszulösen.",
+        "data": {
+          "priority_one_ids": "Prio-1-Prioritäten"
+        }
+      }
+    },
+    "error": {
+      "invalid_priority": "Eine gewählte Priorität ist nicht mehr verfügbar. Bitte Auswahl korrigieren."
+    },
+    "abort": {
+      "invalid_auth": "Der Access Token ist ungültig, abgelaufen oder hat keine benötigte Leseberechtigung.",
+      "cannot_connect": "DocBee ist nicht erreichbar. Prüfe URL, Netzwerk und TLS-Zertifikat.",
+      "invalid_response": "Unerwartete oder unvollständige API-Antwort. Prüfe API-Format und Seitennavigation der Instanz."
+    }
   }
 }

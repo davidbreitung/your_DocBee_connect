@@ -10,3 +10,5 @@ EVENT_PRIORITY_ONE = "docbee_priority_one_ticket"
 def priority_event_signal(entry_id: str) -> str:
     """Keep event subscriptions isolated by configured instance."""
     return f"{DOMAIN}_{entry_id}_priority_one_ticket"
+
+CONF_PRIORITY_ONE_IDS = "priority_one_ids"

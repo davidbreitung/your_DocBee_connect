@@ -60,3 +60,15 @@ bei fehlend/null den dokumentierten Einzelendpunkt mit `fields=*` lesen. Die ID
 muss übereinstimmen, der Zahlenwert bleibt maßgeblich. Bei Fehlern weiter keine
 Prio-Zahl/Prio-Ereignisse erfinden; andere Zähler erhalten. Warnungen pro Fehlerbild
 zusammenfassen. Das ist ein getesteter Fallback, keine bestätigte Live-Fehlerursache.
+
+## D26 – Explizite Prioritätsauswahl vor Zahlenwert (0.5.0)
+
+Die Nutzerantwort enthält nachweislich kein `priority`-Zahlenfeld, nur ID, Name,
+Farbe und Link. Der Detail-Fallback reichte ebenfalls nicht. Nutzer stimmt der
+Auswahl pro Anbindung zu: OptionsFlow mit IDs statt fest codierter Instanz-ID oder
+unsicherer Namensheuristik. Mehrfachauswahl erhält die Möglichkeit mehrerer
+Prio-1-Definitionen; leer bedeutet bisherigen Zahlenmodus. Umbenennungen bleiben
+wirkungslos. Fehlende ausgewählte IDs sind Fehler, keine leere Zählmenge.
+Ein Reload bei Optionsänderung setzt eine neue Ereignisbasis ohne Altalarme.
+Diese Entscheidung ergänzt/ersetzt frühere Regeln, die ausschließlich Wert 100
+als Prio-Definition vorsahen. Auswahl nach Ersteinrichtung über Konfigurieren.

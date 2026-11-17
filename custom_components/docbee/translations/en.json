@@ -87,5 +87,24 @@
         }
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Priority 1 selection",
+        "description": "Select one or more priorities for counts and events. IDs survive renaming. An empty selection uses the legacy numeric value 100. Saving reloads the connection without events for existing tickets.",
+        "data": {
+          "priority_one_ids": "Priority 1 priorities"
+        }
+      }
+    },
+    "error": {
+      "invalid_priority": "A selected priority is no longer available. Please update the selection."
+    },
+    "abort": {
+      "invalid_auth": "The access token is invalid, expired or lacks permission to read users, queues, priorities and tickets.",
+      "cannot_connect": "Could not reach DocBee. Check the URL, network and TLS certificate.",
+      "invalid_response": "Unexpected or incomplete API response. Check the instance API format and pagination."
+    }
   }
 }

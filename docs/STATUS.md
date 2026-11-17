@@ -1,6 +1,6 @@
 # Projektstatus
 
-Stand: **17.11.2026**. Laufzeitversion **0.4.1**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
+Stand: **17.11.2026**. Laufzeitversion **0.5.0**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
 Statushistorien. Den exakten neuesten Commit mit `git log -1` prüfen.
 Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
@@ -11,7 +11,7 @@ Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 - Drei native Bereiche: Zentrale Konfiguration, Benutzer, Queues.
 - Benutzergeräte mit Anzeigename; Benutzername, Rolle, Aktiv, zugewiesene offene Vorgänge, heute bearbeitete und heute geschlossene Tickets.
 - Queue-Geräte mit „Aktuelle Tickets“, nur nicht abgeschlossene Vorgänge.
-- Zentral: „Vorgänge offen“, „Vorgänge Prio 1“ (Wert 100), drei Tageszähler
+- Zentral: „Vorgänge offen“, „Vorgänge Prio 1“ (gewählte IDs, sonst Wert 100), drei Tageszähler
   (bearbeitet, neu, geschlossen), „Neuer Prio 1 Vorgang“ und Ereignisentität.
 - Prio-1-Ereignisbus `docbee_priority_one_ticket`; letzter Wert über Reload hinweg
   gespeichert, Baseline ohne Altalarme beim Start.
@@ -21,7 +21,7 @@ Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
 ## Verifikation und Grenzen
 
-Die Suite enthält **106 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
+Die Suite enthält **114 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
 mit Python 3.13, HA Core 2025.6.3 und den Entwicklungsabhängigkeiten. Sie wurde
 bei der Erweiterung um Benutzer-Tageszähler erneut ausgeführt. `git diff --check` wird
 auch für den Dokumentationsstand geprüft. Windows/WSL-Anleitung ist vorbereitet,
@@ -102,3 +102,18 @@ Warnungen werden pro Fehlerbild zusammengefasst, statt pro Priorität/Poll wiede
 106 Tests bestanden. Nächster Schritt: 0.4.1 live prüfen; bei weiterhin fehlenden
 Werten anonymisierte Listen-/Detailstruktur erheben. Keine gesicherte Aussage,
 dass der Einzelabruf den instanzspezifischen Datenmangel behebt.
+
+## Aktuell: 0.5.0 – konfigurierbare Prio-1-Auswahl
+
+Der Nutzer lieferte eine vollständige Prioritätsantwort mit `id`, `name`, `color`
+und `link`, ohne Zahlenwert `priority`. Auch der Detail-Fallback half nicht.
+Der Nutzer hat daher die konfigurierbare Auswahl ausdrücklich beauftragt.
+OptionsFlow lädt `id,name` und speichert eine Mehrfachauswahl in
+`ConfigEntry.options.priority_one_ids`. Diese hat Vorrang vor Wert 100.
+Keine persönlichen Instanz-IDs wurden fest im Code hinterlegt. Leere Auswahl
+behält den automatischen Modus; Umbenennungen ändern die ID-Zuordnung nicht.
+Fehlende ausgewählte Prioritäten verhindern falsche Nullwerte/Ereignisse.
+Optionsänderungen laden neu und setzen eine frische Ereignisbasis ohne Altalarme.
+114 Tests bestanden. Nächster Schritt: Nutzer aktualisiert, wählt über
+Konfigurieren seine Prio 1 und prüft Zähler sowie eine echte Prioritätsänderung.
+Live-Abnahme und Benutzer-History-Abnahme bleiben offen.

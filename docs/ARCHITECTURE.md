@@ -105,7 +105,8 @@ Entfernte Benutzer/Queues bleiben registriert und werden nicht verfügbar.
 
 ## Ereignisse und persistenter Zustand
 
-Der Vergleich erfolgt über Ticket-IDs mit Prioritätswert 100. Neu in dieser Menge
+Der Vergleich erfolgt über Ticket-IDs mit ausgewählten Prioritäts-IDs
+(ohne Auswahl: Prioritätswert 100). Neu in dieser Menge
 bedeutet Neuanlage oder beobachtete Hochstufung. Statusänderung allein ist kein
 Prio-Wechsel. Alle Treffer erzeugen `docbee_priority_one_ticket` mit
 `config_entry_id`, `device_id`, `ticket_id`, `ticket_number` sowie das zugehörige
@@ -149,3 +150,14 @@ und Statushistorienseiten. History-Array-Pagination ist unbekannt; keine erfunde
 Query-Parameter. Bearer-Zugriff auf diesen undokumentierten Endpunkt wurde noch
 nicht mit einer authentifizierten Instanz validiert. Hier ist eine Live-Abnahme
 notwendig, bevor Vollständigkeit zugesichert werden kann.
+
+## Prioritätsoptionen (0.5.0)
+
+OptionsFlow liest die paginierte Prioritätsliste mit `id,name`, validiert die
+Auswahl erneut beim Speichern und erhält andere Optionen. Die pro ConfigEntry
+persistierten `priority_one_ids` werden beim Setup an DocBeeClient übergeben.
+Ausgewählte IDs ersetzen die numerische Prüfung vollständig, inklusive Verzicht
+auf Detail-Nachabfragen. Die Prioritätsliste prüft weiterhin die Sichtbarkeit der
+Auswahl. Ein Update-Listener lädt die Integration neu; bestehende Ereignis-
+Baseline-Logik schützt vor Altereignissen. Leere/fehlende Optionen erhalten den
+bisherigen automatischen Modus. Kein Konfigurationsversionswechsel nötig.

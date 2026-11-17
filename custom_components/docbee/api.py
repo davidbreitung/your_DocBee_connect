@@ -64,12 +64,13 @@ class DocBeeClient:
     2026.2.0 OpenAPI specification at /restApi/v1/openapi.json.
     """
 
-    def __init__(self, session: aiohttp.ClientSession, url: str, token: str) -> None:
+    def __init__(self, session: aiohttp.ClientSession, url: str, token: str, *, priority_one_ids: list[str] | None = None) -> None:
         self._session = session
         self.url = normalize_url(url)
         if not isinstance(token, str) or not token.strip() or any(c in token for c in "\r\n"):
             raise ValueError("A nonempty single-line access token is required")
         self._token = token.strip()
+        self._priority_one_ids = set(priority_one_ids or [])
         self._priority_warning: tuple[str, ...] = ()
 
     async def _page(self, offset: int, resource: str = "user", fields: str = "id,username,name", filters: dict | None = None, *, sort: bool = True) -> Any:
@@ -179,6 +180,16 @@ class DocBeeClient:
             users[user.id] = user
         return users
 
+    async def async_get_priorities(self) -> dict[str, str]:
+        """Return visible priority IDs and labels for the options selector."""
+        priorities = {}
+        for row in await self._list("priority", "id,name"):
+            name = row.get("name")
+            if not isinstance(name, str) or not name.strip():
+                raise DocBeeResponseError("Missing priority name")
+            priorities[str(row["id"])] = name
+        return priorities
+
     async def async_get_snapshot(self) -> DocBeeSnapshot:
         """Aggregate all visible non-closed tickets, independent of lock flags."""
         users = await self.async_get_users()
@@ -195,6 +206,10 @@ class DocBeeClient:
         for row in await self._list("priority", "id,priority"):
             priority_id = str(row["id"])
             known_priorities.add(priority_id)
+            if self._priority_one_ids:
+                if priority_id in self._priority_one_ids:
+                    priority_one.add(priority_id)
+                continue
             raw_value = row.get("priority")
             problem = "list:missing" if "priority" not in row else f"list:{type(raw_value).__name__}"
             if raw_value is None:
@@ -216,6 +231,9 @@ class DocBeeClient:
                 priority_problems.add(problem)
             elif value == 100:
                 priority_one.add(priority_id)
+        if self._priority_one_ids - known_priorities:
+            priority_values_valid = False
+            priority_problems.add("selection:missing_priority")
         tickets = await self._list("ticket", "id,owner,priority", {"notClosed": "true"})
         assigned: dict[str, int] = {}
         priority_count = 0
@@ -227,7 +245,7 @@ class DocBeeClient:
                 assigned[owner] = assigned.get(owner, 0) + 1
             if row["priority"] is not None:
                 priority = self._identifier(row["priority"])
-                if priority not in known_priorities:
+                if not self._priority_one_ids and priority not in known_priorities:
                     priority_values_valid = False
                     priority_problems.add("ticket:unknown_priority_reference")
                 if priority in priority_one:
@@ -237,7 +255,7 @@ class DocBeeClient:
             if warning:
                 _LOGGER.warning(
                     "Priority data incomplete (%s); priority-1 count and event comparison "
-                    "unavailable. Missing/null list values were retried via priority details. "
+                    "unavailable. Check the priority selection in integration options. "
                     "Other sensors remain available", ", ".join(warning),
                 )
             elif self._priority_warning:

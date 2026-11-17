@@ -3,7 +3,7 @@
 Custom Integration mit UI-Einrichtung per Access Token, einem virtuellen Gerät
 „Zentrale Konfiguration“, Benutzergeräten mit Anzeigenamen und eigenen Queue-Geräten.
 Sensoren zählen nicht abgeschlossene Vorgänge je Verantwortlichem und Queue sowie
-insgesamt und mit Prioritätswert 100. Benutzername, Rolle und Aktiv-Status (Ja/Nein) sind eigene Entitäten.
+insgesamt und mit konfigurierbarer Prio-1-Auswahl (ohne Auswahl: Prioritätswert 100). Benutzername, Rolle und Aktiv-Status (Ja/Nein) sind eigene Entitäten.
 Die Integrationsansicht trennt die Geräte in die Bereiche **Zentrale Konfiguration**,
 **Benutzer** und **Queues**. Tageszähler zeigen heute bearbeitete, neu erstellte
 und geschlossene Vorgänge anhand der Home-Assistant-Zeitzone. Pro Benutzer werden

@@ -312,3 +312,29 @@ async def test_priority_detail_permission_failure_preserves_other_counts(monkeyp
     assert snapshot.assigned_tickets == {"20": 1}
     assert snapshot.priority_one_tickets is None
     assert snapshot.priority_one_ticket_numbers is None
+
+
+async def test_selected_priorities_work_without_values_and_survive_renaming():
+    session = session_for(page([]), resource_page('queue', []),
+        resource_page('priority', [{'id': 77, 'name': 'Renamed'}, {'id': 78}]),
+        resource_page('ticket', [
+            {'id': 1, 'owner': 20, 'priority': 77},
+            {'id': 2, 'owner': 20, 'priority': 78},
+            {'id': 3, 'owner': None, 'priority': 99},
+        ]), resource_page('ticket', [{'id': 1, 'ticketNumber': 'V1'}, {'id': 2, 'ticketNumber': 'V2'}]))
+    client = DocBeeClient(session, 'https://example.com', 'secret', priority_one_ids=['77', '78'])
+    snapshot = await client.async_get_snapshot()
+    assert snapshot.priority_one_tickets == 2
+    assert snapshot.priority_one_ticket_numbers == {'1': 'V1', '2': 'V2'}
+    assert session.get.call_args.kwargs['params']['priorityIds'] == '77,78'
+    assert session.get.call_count == 5  # No numeric detail lookups.
+
+
+async def test_removed_selected_priority_disables_count_and_events():
+    session = session_for(page([]), resource_page('queue', []),
+        resource_page('priority', [{'id': 78, 'priority': 100}]),
+        resource_page('ticket', [{'id': 1, 'owner': 20, 'priority': 78}]))
+    snapshot = await DocBeeClient(session, 'https://example.com', 'secret', priority_one_ids=['77']).async_get_snapshot()
+    assert snapshot.priority_one_tickets is None
+    assert snapshot.priority_one_ticket_numbers is None
+    assert snapshot.open_tickets == 1

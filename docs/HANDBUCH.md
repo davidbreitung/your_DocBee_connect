@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.4.1 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.5.0 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -144,8 +144,34 @@ sind entsprechend der DocBee-Filtersemantik enthalten.
 - **Vorgänge offen:** Gesamtzahl aller nicht abgeschlossenen sichtbaren Vorgänge,
   einschließlich Vorgängen ohne Verantwortlichen.
 - **Vorgänge Prio 1:** Nicht abgeschlossene Vorgänge mit einer Priorität, deren
-  numerischer Prioritätswert **100** ist. Maßgeblich ist der Wert, nicht die ID
-  oder die Bezeichnung; mehrere Prioritäten mit Wert 100 werden gemeinsam gezählt.
+  ID in den Integrationsoptionen ausgewählt ist. Ohne Auswahl werden wie bisher
+  Prioritäten mit numerischem Wert **100** gezählt.
+
+### Prio-1-Priorität auswählen (ab 0.5.0)
+
+1. Nach Installation/Update Home Assistant neu starten.
+2. **Einstellungen → Geräte & Dienste → Your Docbee Connect** öffnen.
+3. Bei der betreffenden Anbindung **Konfigurieren** (Zahnrad/Optionen, abhängig
+   von der HA-Version) öffnen.
+4. Unter **Prio-1-Prioritäten** die gewünschte Priorität, beispielsweise
+   **„1 - sofort“**, auswählen und speichern. Mehrere Einträge sind möglich.
+
+Die Auswahl gilt pro Anbindung für Zähler und Ereignisse. Gespeichert werden IDs,
+keine Namen; Umbenennungen ändern die Zuordnung nicht. Namen und IDs werden im
+Auswahlfeld angezeigt, aber keine Instanz-ID ist im Code hinterlegt. Die Integration
+lädt nach dem Speichern automatisch neu. Bereits vorhandene Tickets lösen dabei
+keine Ereignisse aus; die zuletzt gemeldete Vorgangsnummer bleibt gespeichert.
+
+Auch bei einer neuen Einrichtung erfolgt diese Auswahl anschließend über die
+Optionen. **Leere Auswahl** bedeutet Rückkehr zum bisherigen automatischen
+Zahlenwert 100, nicht Deaktivierung der Ereignisse. Bei expliziter Auswahl sind
+fehlende Zahlenwerte anderer Prioritäten irrelevant; es erfolgen keine Detail-
+Nachabfragen für diese Zahlenwerte. Wird eine ausgewählte Priorität gelöscht oder
+unsichtbar, bleiben Prio-Zähler und Ereignisvergleich unverfügbar, bis die Auswahl
+korrigiert oder die Priorität wieder sichtbar ist. Andere Sensoren laufen weiter.
+Ein Fehler beim Laden/Speichern der Optionen erhält die bisherige Auswahl.
+
+### Automatische Erkennung ohne Auswahl
 
 Prioritätswerte werden auch als gleichwertige Zahlenformate wie `100.0`,
 `"100"` oder `"100.0"` akzeptiert. Fehlt `priority` in der Liste oder ist es
@@ -285,7 +311,8 @@ Die Vorgangsnummer ist die DocBee-Nummer (`ticketNumber`), nicht die interne ID.
 ### Wann wird ausgelöst?
 
 Ein Ereignis entsteht, wenn ein Vorgang gegenüber dem vorherigen erfolgreichen
-Abruf neu zur Menge der Vorgänge mit Prioritätswert **100** gehört: durch
+Abruf neu zur Menge der Vorgänge mit den ausgewählten Prio-1-IDs gehört
+(ohne Auswahl: numerischer Wert **100**): durch
 Neuanlage oder durch eine nachträgliche Prioritätsänderung. Ein beobachteter
 Wechsel weg von Prio 1 und anschließend zurück löst erneut aus. Ein unverändert
 als Prio 1 geführter Vorgang wird nicht wiederholt gemeldet.
@@ -293,7 +320,7 @@ als Prio 1 geführter Vorgang wird nicht wiederholt gemeldet.
 Für diese Erkennung werden auch abgeschlossene Vorgänge berücksichtigt. Anders
 als die Ticketzähler prüft sie Prioritätsänderungen unabhängig vom Status;
 Schließen und Wiederöffnen allein lösen daher kein Ereignis aus. Die API wird
-zusätzlich mit `priorityIds` für alle Prioritäten mit Wert 100 und den Feldern
+zusätzlich mit `priorityIds` für die gewählten IDs (sonst Wert 100) und den Feldern
 `id,ticketNumber` abgefragt, einschließlich Seitennavigation.
 
 Bei mehreren Treffern werden einzelne Ereignisse in stabiler ID-Reihenfolge

@@ -1,7 +1,7 @@
 # Übergabe – zuerst lesen
 
 **Stand 17.11.2026.** Projekt: **Your Docbee Connect**, Home-Assistant-Integration
-für DocBee. Runtime **0.4.1** (neuester Codecommit: `git log -1`), Entwicklungsbranch
+für DocBee. Runtime **0.5.0** (neuester Codecommit: `git log -1`), Entwicklungsbranch
 **`main`**, Repository [davidbreitung/your_DocBee_connect](https://github.com/davidbreitung/your_DocBee_connect).
 Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chatimport.
 
@@ -11,7 +11,7 @@ Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chati
 2. `AGENTS.md`, diese Datei, `STATUS.md` und `TODO.md` lesen. Bei technischen
    Fragen `ARCHITECTURE.md` und `DECISIONS.md` hinzunehmen.
 3. Linux-/WSL-Testumgebung gemäß [Windows-Anleitung](WINDOWS_SETUP.md) einrichten.
-4. `python -m pytest -q`: bisher **106 Tests grün**, keine DocBee-Zugangsdaten nötig.
+4. `python -m pytest -q`: bisher **114 Tests grün**, keine DocBee-Zugangsdaten nötig.
 5. Noch nicht implementierte Arbeit nicht aus Chat-Zusammenfassungen als fertig
    ableiten. Vorher aktuellen Git-Diff/Log ansehen; keine alten Änderungen neu anwenden.
 
@@ -31,7 +31,7 @@ Polling, Tests und ausführliches [Handbuch](HANDBUCH.md).
 - „Auf Benutzer gesperrt“ wurde präzisiert zu **Verantwortlicher (`owner`)**,
   nicht technische Sperre `isLocked` und nicht tatsächlicher Bearbeiter.
 - Alle bisherigen offenen Benutzer-/Queue-/Prio-Zähler schließen abgeschlossene
-  Vorgänge aus. Prio 1 = numerischer Prioritätswert **100**, nicht ID 1.
+  Vorgänge aus. Prio 1 = ausgewählte IDs; ohne Auswahl numerischer Wert **100**, nicht ID 1.
 - „In Bearbeitung“ entfällt, da der Status nicht existiert.
 - „Offene Tagesabschlüsse“ zuerst gewünscht (alle überfälligen), später ausdrücklich
   verworfen. Nicht erneut hinzufügen, auch wenn die alte Planung im Chat auftaucht.
@@ -138,3 +138,18 @@ Warnungen werden pro Fehlerbild zusammengefasst, statt pro Priorität/Poll wiede
 106 Tests bestanden. Nächster Schritt: 0.4.1 live prüfen; bei weiterhin fehlenden
 Werten anonymisierte Listen-/Detailstruktur erheben. Keine gesicherte Aussage,
 dass der Einzelabruf den instanzspezifischen Datenmangel behebt.
+
+## Aktuell: 0.5.0 – konfigurierbare Prio-1-Auswahl
+
+Der Nutzer lieferte eine vollständige Prioritätsantwort mit `id`, `name`, `color`
+und `link`, ohne Zahlenwert `priority`. Auch der Detail-Fallback half nicht.
+Der Nutzer hat daher die konfigurierbare Auswahl ausdrücklich beauftragt.
+OptionsFlow lädt `id,name` und speichert eine Mehrfachauswahl in
+`ConfigEntry.options.priority_one_ids`. Diese hat Vorrang vor Wert 100.
+Keine persönlichen Instanz-IDs wurden fest im Code hinterlegt. Leere Auswahl
+behält den automatischen Modus; Umbenennungen ändern die ID-Zuordnung nicht.
+Fehlende ausgewählte Prioritäten verhindern falsche Nullwerte/Ereignisse.
+Optionsänderungen laden neu und setzen eine frische Ereignisbasis ohne Altalarme.
+114 Tests bestanden. Nächster Schritt: Nutzer aktualisiert, wählt über
+Konfigurieren seine Prio 1 und prüft Zähler sowie eine echte Prioritätsänderung.
+Live-Abnahme und Benutzer-History-Abnahme bleiben offen.

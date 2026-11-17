@@ -7,7 +7,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 
-from .const import DOMAIN
+from .const import DOMAIN, CONF_PRIORITY_ONE_IDS
 
 from .api import DocBeeClient
 from .coordinator import DocBeeCoordinator
@@ -21,7 +21,8 @@ type DocBeeConfigEntry = ConfigEntry[DocBeeCoordinator]
 async def async_setup_entry(hass: HomeAssistant, entry: DocBeeConfigEntry) -> bool:
     """Validate access, register the central device and load sensors."""
     client = DocBeeClient(
-        async_get_clientsession(hass), entry.data[CONF_URL], entry.data[CONF_ACCESS_TOKEN]
+        async_get_clientsession(hass), entry.data[CONF_URL], entry.data[CONF_ACCESS_TOKEN],
+        priority_one_ids=entry.options.get(CONF_PRIORITY_ONE_IDS),
     )
     coordinator = DocBeeCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
@@ -36,6 +37,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DocBeeConfigEntry) -> bo
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(coordinator.async_add_listener(coordinator.async_process_priority_events))
+    entry.async_on_unload(entry.add_update_listener(async_reload_options))
     return True
 
 
@@ -50,3 +52,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: DocBeeConfigEntry) -> b
 async def async_remove_entry(hass: HomeAssistant, entry: DocBeeConfigEntry) -> None:
     """Remove local event state when the connection is deleted."""
     await Store(hass, 1, f"{DOMAIN}.{entry.entry_id}.priority_events").async_remove()
+
+
+async def async_reload_options(hass: HomeAssistant, entry: DocBeeConfigEntry) -> None:
+    """Changing priorities starts a fresh event baseline without retroactive alerts."""
+    await hass.config_entries.async_reload(entry.entry_id)

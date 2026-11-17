@@ -291,3 +291,59 @@ async def test_daily_counts_follow_ha_timezone_and_dst(hass, now, start):
         result = await coordinator._async_update_data()
     client.async_get_daily_counts.assert_awaited_once_with(start, now)
     assert result.modified_today == result.created_today == result.closed_today == 0
+
+
+async def test_options_save_reload_and_clear(hass):
+    from custom_components.docbee.const import CONF_PRIORITY_ONE_IDS
+    entry = MockConfigEntry(domain=DOMAIN, data=DATA, unique_id=DATA[CONF_URL])
+    entry.add_to_hass(hass)
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_snapshot', return_value=snapshot()):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_priorities', return_value={'77': 'Immediate'}), patch.object(hass.config_entries, 'async_reload', return_value=True) as reload:
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        assert result['type'] is FlowResultType.FORM
+        result = await hass.config_entries.options.async_configure(result['flow_id'], {CONF_PRIORITY_ONE_IDS: ['77']})
+        assert result['type'] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done()
+        assert entry.options[CONF_PRIORITY_ONE_IDS] == ['77']
+        reload.assert_called_once_with(entry.entry_id)
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(result['flow_id'], {CONF_PRIORITY_ONE_IDS: []})
+        assert result['type'] is FlowResultType.CREATE_ENTRY
+        assert entry.options[CONF_PRIORITY_ONE_IDS] == []
+        await hass.async_block_till_done()
+
+
+async def test_options_revalidate_removed_priority(hass):
+    from custom_components.docbee.const import CONF_PRIORITY_ONE_IDS
+    entry = MockConfigEntry(domain=DOMAIN, data=DATA, options={CONF_PRIORITY_ONE_IDS: ['77']})
+    entry.add_to_hass(hass)
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_priorities', return_value={'78': 'Other'}):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(result['flow_id'], {CONF_PRIORITY_ONE_IDS: ['77']})
+        assert result['type'] is FlowResultType.FORM
+        assert result['errors'] == {'base': 'invalid_priority'}
+        assert entry.options[CONF_PRIORITY_ONE_IDS] == ['77']
+
+
+@pytest.mark.parametrize('error,reason', [(DocBeeAuthError(), 'invalid_auth'), (DocBeeConnectionError(), 'cannot_connect'), (DocBeeResponseError(), 'invalid_response')])
+async def test_options_read_errors_preserve_selection(hass, error, reason):
+    from custom_components.docbee.const import CONF_PRIORITY_ONE_IDS
+    entry = MockConfigEntry(domain=DOMAIN, data=DATA, options={CONF_PRIORITY_ONE_IDS: ['77']})
+    entry.add_to_hass(hass)
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_priorities', side_effect=error):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        assert result['type'] is FlowResultType.ABORT
+        assert result['reason'] == reason
+        assert entry.options[CONF_PRIORITY_ONE_IDS] == ['77']
+
+
+async def test_setup_passes_saved_priority_selection(hass):
+    from custom_components.docbee.const import CONF_PRIORITY_ONE_IDS
+    entry = MockConfigEntry(domain=DOMAIN, data=DATA, options={CONF_PRIORITY_ONE_IDS: ['77']})
+    entry.add_to_hass(hass)
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_snapshot', return_value=snapshot()):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert entry.runtime_data.client._priority_one_ids == {'77'}

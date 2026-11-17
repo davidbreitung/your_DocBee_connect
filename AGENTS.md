@@ -42,7 +42,10 @@
 - `owner` bezeichnet Verantwortlichen/Queue, nicht den tatsächlichen Bearbeiter.
   `modified` allein beweist keine Bearbeiter-ID. Benutzerbezogene Tageszähler
   benötigen eine belastbare Zuordnung über Historie/Audit (siehe TODO).
-- Priorität 1 bedeutet numerischer Prioritätswert **100**, nicht Prioritäts-ID 1.
+- Prio 1: explizite `priority_one_ids` in ConfigEntry.options haben Vorrang.
+  Ohne Auswahl gilt numerischer Wert **100**, niemals automatisch ID 1 oder ein Name.
+  Keine instanzspezifischen IDs fest codieren; Optionsänderung lädt die Anbindung
+  neu und setzt die Ereignisbasis ohne Altereignisse.
   Zähler offener Vorgänge verwenden `notClosed=true`; Ereignisse und Tageszähler
   haben andere, im Handbuch festgelegte Filter.
 - Aktualisierungsintervall fünf Minuten. Tagesgrenzen aus der HA-Zeitzone in UTC
