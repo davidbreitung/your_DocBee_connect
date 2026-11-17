@@ -212,6 +212,7 @@ async def test_priority_numeric_representations(value, expected):
 async def test_bad_priority_only_disables_priority_count(value):
     session = session_for(page([]), resource_page('queue', []),
         resource_page('priority', [{'id': 77, 'priority': value}]),
+        *([{'id': 77, 'priority': None}] if value is None else []),
         resource_page('ticket', [{'id': 1, 'owner': 20, 'priority': 77}]))
     snapshot = await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
     assert snapshot.priority_one_tickets is None
@@ -256,3 +257,58 @@ async def test_daily_counts_reject_bad_totals(count):
     session = session_for({'ticket': [], 'totalCount': count})
     with pytest.raises(DocBeeResponseError):
         await DocBeeClient(session, 'https://example.com', 'secret').async_get_daily_counts('start', 'end')
+
+
+@pytest.mark.parametrize("row", [{"id": 77}, {"id": 77, "priority": None}])
+async def test_missing_priority_recovers_from_documented_detail(row):
+    session = session_for(page([]), resource_page("queue", []),
+        resource_page("priority", [row]), {"id": 77, "priority": 100},
+        resource_page("ticket", [{"id": 1, "owner": 20, "priority": 77}]),
+        resource_page("ticket", [{"id": 1, "ticketNumber": "V1"}]))
+    snapshot = await DocBeeClient(session, "https://example.com", "secret").async_get_snapshot()
+    assert snapshot.priority_one_tickets == 1
+    assert snapshot.priority_one_ticket_numbers == {"1": "V1"}
+    detail_call = session.get.call_args_list[3]
+    assert detail_call.args[0].endswith("/priority/77")
+    assert detail_call.kwargs["params"] == {"fields": "*"}
+
+
+@pytest.mark.parametrize("detail", [{"id": 77}, {"id": 88, "priority": 100}, [], {"id": 77, "priority": None}])
+async def test_unresolved_priority_detail_is_safe_and_warning_recovers(detail, caplog):
+    bad_cycle = [page([]), resource_page("queue", []),
+        resource_page("priority", [{"id": 77}]), detail,
+        resource_page("ticket", [{"id": 1, "owner": 20, "priority": 77}])]
+    good_cycle = [page([]), resource_page("queue", []),
+        resource_page("priority", [{"id": 77, "priority": 100}]),
+        resource_page("ticket", [{"id": 1, "owner": 20, "priority": 77}]),
+        resource_page("ticket", [{"id": 1, "ticketNumber": "V1"}])]
+    client = DocBeeClient(session_for(*bad_cycle, *bad_cycle, *good_cycle, *bad_cycle), "https://example.com", "secret")
+    for _ in range(2):
+        snapshot = await client.async_get_snapshot()
+        assert snapshot.priority_one_tickets is None
+        assert snapshot.priority_one_ticket_numbers is None
+        assert snapshot.assigned_tickets == {"20": 1}
+    assert sum("Priority data incomplete" in r.message for r in caplog.records) == 1
+    assert (await client.async_get_snapshot()).priority_one_tickets == 1
+    await client.async_get_snapshot()
+    assert sum("Priority data incomplete" in r.message for r in caplog.records) == 2
+
+
+async def test_priority_detail_permission_failure_preserves_other_counts(monkeypatch):
+    session = session_for(page([]), resource_page("queue", []),
+        resource_page("priority", [{"id": 77, "priority": None}]),
+        resource_page("ticket", [{"id": 1, "owner": 20, "priority": 77}]))
+    client = DocBeeClient(session, "https://example.com", "secret")
+    original_request = client._request
+
+    async def request(resource, params):
+        if resource == "priority/77":
+            raise DocBeeAuthError("Forbidden")
+        return await original_request(resource, params)
+
+    monkeypatch.setattr(client, "_request", request)
+    snapshot = await client.async_get_snapshot()
+    assert snapshot.open_tickets == 1
+    assert snapshot.assigned_tickets == {"20": 1}
+    assert snapshot.priority_one_tickets is None
+    assert snapshot.priority_one_ticket_numbers is None

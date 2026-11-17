@@ -70,6 +70,7 @@ class DocBeeClient:
         if not isinstance(token, str) or not token.strip() or any(c in token for c in "\r\n"):
             raise ValueError("A nonempty single-line access token is required")
         self._token = token.strip()
+        self._priority_warning: tuple[str, ...] = ()
 
     async def _page(self, offset: int, resource: str = "user", fields: str = "id,username,name", filters: dict | None = None, *, sort: bool = True) -> Any:
         params = {"fields": fields, "limit": PAGE_SIZE, "offset": offset}
@@ -190,18 +191,31 @@ class DocBeeClient:
         priority_one = set()
         priority_values_valid = True
         known_priorities = set()
+        priority_problems: set[str] = set()
         for row in await self._list("priority", "id,priority"):
-            known_priorities.add(str(row["id"]))
-            value = self._priority_value(row.get("priority"))
+            priority_id = str(row["id"])
+            known_priorities.add(priority_id)
+            raw_value = row.get("priority")
+            problem = "list:missing" if "priority" not in row else f"list:{type(raw_value).__name__}"
+            if raw_value is None:
+                # The list may omit optional properties. Try the documented
+                # detail endpoint before treating the priority as unknown.
+                try:
+                    detail = await self._request(
+                        f"priority/{quote(priority_id, safe='')}", {"fields": "*"},
+                    )
+                    if not isinstance(detail, dict) or str(detail.get("id")) != priority_id:
+                        raise DocBeeResponseError("Invalid priority detail")
+                    raw_value = detail.get("priority")
+                    problem += ";detail:missing" if "priority" not in detail else f";detail:{type(raw_value).__name__}"
+                except DocBeeError as err:
+                    problem += f";detail:{type(err).__name__}"
+            value = self._priority_value(raw_value)
             if value is None:
                 priority_values_valid = False
-                _LOGGER.warning(
-                    "DocBee returned a missing or invalid priority value (type: %s); "
-                    "the priority-1 sensor is unavailable until valid data is returned",
-                    type(row.get("priority")).__name__,
-                )
+                priority_problems.add(problem)
             elif value == 100:
-                priority_one.add(str(row["id"]))
+                priority_one.add(priority_id)
         tickets = await self._list("ticket", "id,owner,priority", {"notClosed": "true"})
         assigned: dict[str, int] = {}
         priority_count = 0
@@ -215,8 +229,20 @@ class DocBeeClient:
                 priority = self._identifier(row["priority"])
                 if priority not in known_priorities:
                     priority_values_valid = False
+                    priority_problems.add("ticket:unknown_priority_reference")
                 if priority in priority_one:
                     priority_count += 1
+        warning = tuple(sorted(priority_problems))
+        if warning != self._priority_warning:
+            if warning:
+                _LOGGER.warning(
+                    "Priority data incomplete (%s); priority-1 count and event comparison "
+                    "unavailable. Missing/null list values were retried via priority details. "
+                    "Other sensors remain available", ", ".join(warning),
+                )
+            elif self._priority_warning:
+                _LOGGER.info("Priority data valid again; priority-1 evaluation restored")
+            self._priority_warning = warning
         event_tickets: dict[str, str] | None = None
         if priority_values_valid:
             event_tickets = {}

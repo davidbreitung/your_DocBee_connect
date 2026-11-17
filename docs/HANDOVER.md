@@ -1,7 +1,7 @@
 # Übergabe – zuerst lesen
 
 **Stand 17.11.2026.** Projekt: **Your Docbee Connect**, Home-Assistant-Integration
-für DocBee. Runtime **0.4.0** (neuester Codecommit: `git log -1`), Entwicklungsbranch
+für DocBee. Runtime **0.4.1** (neuester Codecommit: `git log -1`), Entwicklungsbranch
 **`main`**, Repository [davidbreitung/your_DocBee_connect](https://github.com/davidbreitung/your_DocBee_connect).
 Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chatimport.
 
@@ -11,7 +11,7 @@ Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chati
 2. `AGENTS.md`, diese Datei, `STATUS.md` und `TODO.md` lesen. Bei technischen
    Fragen `ARCHITECTURE.md` und `DECISIONS.md` hinzunehmen.
 3. Linux-/WSL-Testumgebung gemäß [Windows-Anleitung](WINDOWS_SETUP.md) einrichten.
-4. `python -m pytest -q`: bisher **99 Tests grün**, keine DocBee-Zugangsdaten nötig.
+4. `python -m pytest -q`: bisher **106 Tests grün**, keine DocBee-Zugangsdaten nötig.
 5. Noch nicht implementierte Arbeit nicht aus Chat-Zusammenfassungen als fertig
    ableiten. Vorher aktuellen Git-Diff/Log ansehen; keine alten Änderungen neu anwenden.
 
@@ -99,7 +99,7 @@ setzt voraus, dass DocBee bei jeder relevanten Aktion `modified` aktualisiert.
 **Nächster Schritt:** Nutzer aktualisiert und prüft echte Fälle; bei nicht
 verfügbaren Zählern anonymisierten Antwortstatus/Schema erheben, keine Tokens
 anfordern. Ein fehlender History-Zugriff blockiert die unabhängige Schließungszählung
-nicht. Tests: 99 bestanden mit synthetischen Historiendaten. Details in TODO/Handbuch.
+nicht. Tests: 106 bestanden mit synthetischen Historiendaten. Details in TODO/Handbuch.
 
 ## Was diese Sicherung nicht enthält
 
@@ -126,3 +126,15 @@ unbekannt; tatsächliche geräteübergreifende Chatverfügbarkeit wurde nicht ge
 Am Arbeitsende STATUS/TODO/HANDOVER mit neuen Ergebnissen und Grenzen aktualisieren,
 prüfen, committen, pushen. Git-Status sauber hinterlassen, bevor der andere Rechner
 weiterarbeitet. Exakte Befehle: [Windows- und Synchronisierungsanleitung](WINDOWS_SETUP.md).
+
+## Nachtrag 0.4.1 – fehlende Prioritätswerte
+
+Nutzerscreenshot: Warnung mit `NoneType`; bisher unterschied `row.get()` nicht
+zwischen fehlendem Feld und explizitem null. OpenAPI bestätigt weiterhin `priority`
+als Zahlenfeld und den Einzelabruf `/v1/priority/{id}` mit `fields=*`.
+Fehlende/null Listenwerte werden nun per Einzelabruf nachgeladen; ungültige oder
+nicht zugängliche Details bleiben unbekannt, andere Sensoren funktionieren weiter.
+Warnungen werden pro Fehlerbild zusammengefasst, statt pro Priorität/Poll wiederholt.
+106 Tests bestanden. Nächster Schritt: 0.4.1 live prüfen; bei weiterhin fehlenden
+Werten anonymisierte Listen-/Detailstruktur erheben. Keine gesicherte Aussage,
+dass der Einzelabruf den instanzspezifischen Datenmangel behebt.

@@ -1,6 +1,6 @@
 # Projektstatus
 
-Stand: **17.11.2026**. Laufzeitversion **0.4.0**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
+Stand: **17.11.2026**. Laufzeitversion **0.4.1**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
 Statushistorien. Den exakten neuesten Commit mit `git log -1` prüfen.
 Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
@@ -21,7 +21,7 @@ Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
 ## Verifikation und Grenzen
 
-Die Suite enthält **99 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
+Die Suite enthält **106 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
 mit Python 3.13, HA Core 2025.6.3 und den Entwicklungsabhängigkeiten. Sie wurde
 bei der Erweiterung um Benutzer-Tageszähler erneut ausgeführt. `git diff --check` wird
 auch für den Dokumentationsstand geprüft. Windows/WSL-Anleitung ist vorbereitet,
@@ -51,7 +51,7 @@ aber nicht die korrekte Live-Zählung aller heute implementierten Funktionen.
    bisherigen Integrationsfunktionen. Persönliche Beispielinhalte nicht gespeichert.
 4. `Invalid priority value` aus Nutzer-Screenshot wurde defensiv behandelt:
    Zahlenformen werden toleriert, sonst bleibt der Prio-1-Zähler unverfügbar.
-   Originalantwort/Typ des problematischen Werts ist unbestätigt.
+   Neuer Screenshot bestätigt `NoneType` (Feld fehlt oder null); siehe Nachtrag 0.4.1.
 5. Polling kann kurze Übergänge verpassen; keine rückwirkenden Prio-Ereignisse nach
    Neustart. Sichtrechte beeinflussen alle Zähler und Ereignisse.
 6. API-Daten sind kein transaktionaler Snapshot. Ungültige Schema-/Tageszähler-
@@ -90,3 +90,15 @@ statischen Notiz auf spätere Änderungen schließen.
   Das ist eine begrenzte Musterprüfung plus Inhaltsreview, kein mathematischer
   Nachweis, dass beliebig formatierte Geheimnisse niemals enthalten sein können.
 - Kein Runtime-Code, keine laufenden Dienste, keine internen Codex-Speicher verändert.
+
+## Nachtrag 0.4.1 – fehlende Prioritätswerte
+
+Nutzerscreenshot: Warnung mit `NoneType`; bisher unterschied `row.get()` nicht
+zwischen fehlendem Feld und explizitem null. OpenAPI bestätigt weiterhin `priority`
+als Zahlenfeld und den Einzelabruf `/v1/priority/{id}` mit `fields=*`.
+Fehlende/null Listenwerte werden nun per Einzelabruf nachgeladen; ungültige oder
+nicht zugängliche Details bleiben unbekannt, andere Sensoren funktionieren weiter.
+Warnungen werden pro Fehlerbild zusammengefasst, statt pro Priorität/Poll wiederholt.
+106 Tests bestanden. Nächster Schritt: 0.4.1 live prüfen; bei weiterhin fehlenden
+Werten anonymisierte Listen-/Detailstruktur erheben. Keine gesicherte Aussage,
+dass der Einzelabruf den instanzspezifischen Datenmangel behebt.

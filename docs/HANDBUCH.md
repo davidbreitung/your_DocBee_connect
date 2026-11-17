@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.4.0 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.4.1 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -148,14 +148,23 @@ sind entsprechend der DocBee-Filtersemantik enthalten.
   oder die Bezeichnung; mehrere Prioritäten mit Wert 100 werden gemeinsam gezählt.
 
 Prioritätswerte werden auch als gleichwertige Zahlenformate wie `100.0`,
-`"100"` oder `"100.0"` akzeptiert. Fehlt ein Prioritätswert, ist er ungültig
-oder verweist ein Vorgang auf eine nicht gelieferte Priorität, wird ausschließlich
-„Vorgänge Prio 1“ als nicht verfügbar markiert. Die Einrichtung und die übrigen
-Sensoren funktionieren weiter. Nach einem gültigen Abruf wird der Sensor wieder
-verfügbar. Ein Hinweis im Protokoll nennt bei ungültigen Werten nur den Datentyp,
-keine Rohdaten. Diese Behandlung behebt den bisherigen vollständigen
-Einrichtungsabbruch mit „Invalid priority value“; das genaue Antwortformat der
-betroffenen Instanz wurde noch nicht direkt geprüft.
+`"100"` oder `"100.0"` akzeptiert. Fehlt `priority` in der Liste oder ist es
+`null`, fragt Version 0.4.1 die betreffende Priorität zusätzlich über den
+dokumentierten Endpunkt `GET /restApi/v1/priority/{id}?fields=*` ab.
+Bleibt der Wert unbekannt/ungültig oder verweist ein Ticket auf eine unbekannte
+Priorität, bleiben „Vorgänge Prio 1“ und der Prio-Ereignisvergleich unverfügbar.
+Andere Sensoren funktionieren weiter; unbekannte Werte werden nicht als 0 oder
+anhand des Namens interpretiert. Nach gültigen Daten wird die Auswertung fortgesetzt.
+
+Eine zusammengefasste Warnung unterscheidet fehlende Felder (`missing`), explizites
+`null` (`NoneType`) und Fehler des Detailabrufs. Sie enthält keine Namen, IDs,
+Tokens oder Antwortinhalte und wird beim selben Fehlerbild nicht bei jedem Poll
+wiederholt (erneut nach Wiederherstellung oder Neustart möglich).
+Der Nutzerscreenshot bestätigt einen fehlenden/null Listenwert; ob der Detailabruf
+in der betroffenen Instanz den Wert liefert, ist noch nicht live geprüft.
+Falls die Warnung bleibt, reicht ein anonymisiertes Beispiel der Prioritätsliste
+und der Detailantwort mit Feldnamen/Datentypen oder der HTTP-Status des Detailabrufs.
+Keine Zugangsdaten oder Browser-Cookies weitergeben.
 
 Leere Zählmengen ergeben `0`. Bei einem fehlerhaften oder unvollständigen Abruf
 werden die Sensoren dagegen als nicht verfügbar markiert. Es gibt keinen Sensor

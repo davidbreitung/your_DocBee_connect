@@ -51,3 +51,12 @@ inhaltlich; wo keine genaue Entscheidungszeit vorliegt, wird keine erfunden.
   öffentlich spezifiziert oder mit Bearer authentifiziert geprüft. Kein Paging
   erfinden; Vollständigkeit in der Nutzerinstanz prüfen. Bis zu vier Ticketprüfungen
   gleichzeitig, um den Server nicht mit Anfragen pro Benutzer zu belasten.
+
+## D25 – Fehlende Prioritätswerte nachladen (0.4.1)
+
+Der Screenshot bestätigt `NoneType`, aber nicht, ob das Listenfeld fehlt oder null
+ist. Statt unbekannte Prioritäten zu ignorieren oder Namen als Ersatzwert zu nutzen,
+bei fehlend/null den dokumentierten Einzelendpunkt mit `fields=*` lesen. Die ID
+muss übereinstimmen, der Zahlenwert bleibt maßgeblich. Bei Fehlern weiter keine
+Prio-Zahl/Prio-Ereignisse erfinden; andere Zähler erhalten. Warnungen pro Fehlerbild
+zusammenfassen. Das ist ein getesteter Fallback, keine bestätigte Live-Fehlerursache.

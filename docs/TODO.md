@@ -28,8 +28,9 @@ Produktivsysteme zu ändern oder sämtliche Ideen umzusetzen.
 - [ ] Live-Abnahme durch Nutzer: Werte mit DocBee vergleichen (Benutzer, Queue,
   zentral, Rolle/Aktiv, Tagesgrenzen und Ereignis). Keine Tokens im Chat verlangen.
 - [ ] Falls Prio-1-Sensor weiter unverfügbar: anonymisierten Datentyp/Schema prüfen;
-  bisheriger Screenshot erklärt nicht den tatsächlichen Rohwert.
-- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 99 Tests ausführen,
+  Screenshot bestätigt fehlend/null. Detail-Fallback aus 0.4.1 live prüfen;
+  bei weiterem Fehler anonymisierte Listen-/Detailantwort vergleichen.
+- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 106 Tests ausführen,
   Git-Roundtrip A → B → A bestätigen. Anleitung bislang nur auf Linux-Basis vorbereitet.
 - [ ] Prüfen, ob aktuelle Desktop-App-Version Cloud-/Remote-Chats offiziell
   geräteübergreifend fortsetzen kann. Installierte Version und Kontokonfiguration
