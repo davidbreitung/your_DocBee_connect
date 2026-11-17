@@ -80,3 +80,18 @@
 - Commit/Push bei Nutzerauftrag bzw. bestehender Sitzungsautorisierung auf den
   vereinbarten Branch; vor Push Remote-Fortschritt prüfen. Keine produktiven
   Dienste ändern, keine Cloud-Umgebung ohne Auftrag veröffentlichen.
+
+
+## Repository-uebergreifender Dokumentationsstandard
+
+Diese Regeln ergaenzen die projektspezifischen Vorgaben oben und gelten bei jeder relevanten Entwicklung:
+- Vor der Arbeit auch `REQUIREMENTS.md`, `STATUS.md`, `docs/USER_MANUAL.md` und `docs/ADMIN_MANUAL.md` lesen. Die vorhandenen Detailquellen `docs/STATUS.md`, `docs/TODO.md`, `docs/HANDOVER.md`, `docs/DECISIONS.md` und `docs/HANDBUCH.md` bleiben massgeblich; Widersprueche aufklaeren, nicht stillschweigend ueberschreiben.
+- `REQUIREMENTS.md` bei neuen oder geaenderten Anforderungen und Akzeptanzkriterien nachfuehren. Bereits dokumentierte Entscheidungen erhalten.
+- `STATUS.md` als kompakte projektweite Uebersicht bei jeder wesentlichen Entwicklungsaufgabe aktualisieren und den detaillierten Stand in `docs/STATUS.md` sowie offene Punkte in `docs/TODO.md` synchron halten.
+- Beide Handbuecher verpflichtend mitpflegen: `docs/USER_MANUAL.md` fuer Anwender und `docs/ADMIN_MANUAL.md` fuer Administratoren. Bei Funktions-, Konfigurations-, Installations-, Rechte- oder Betriebsveraenderungen betroffene Abschnitte aktualisieren. Das bestehende `docs/HANDBUCH.md` bleibt erhalten und wird weiterhin synchron gepflegt.
+- Relevante Dokumentationsaenderungen mit Codeaenderungen im selben Arbeitsgang committen und pushen. Unveraenderte Anforderungen oder Handbuecher nicht kuenstlich aendern; Nichtbetroffenheit in `STATUS.md` vermerken.
+- Nur wirklich ausgefuehrte Tests als bestanden dokumentieren; simulierte Tests nicht als authentifizierte Live-Abnahme ausgeben. Fehlende Tests, bekannte Probleme und naechste Schritte offen benennen.
+- Vor Abschluss Konsistenz von Code, README, Anforderungen, Status, Handbuechern und bestehenden Architekturentscheidungen pruefen. Keine nicht implementierten Funktionen als verfuegbar beschreiben.
+- Keine Secrets, Tokens, persoenlichen Daten oder privaten HA-Konfigurationen committen.
+- Bestehende projektspezifische Git- und Sicherheitsregeln gelten weiter. Insbesondere kein ungefragtes Deployment oder Neustart produktiver Dienste.
+- Bei Wechsel zwischen Work, Codex und anderen Agenten muessen die Regeln erneut eingelesen werden; der Chatverlauf wird nicht automatisch vollstaendig uebertragen.
