@@ -234,8 +234,9 @@ async def test_priority_event_requires_a_real_ticket_number(number):
         resource_page('priority', [{'id': 77, 'priority': 100}]),
         resource_page('ticket', []),
         resource_page('ticket', [{'id': 1, 'ticketNumber': number}]))
-    with pytest.raises(DocBeeResponseError, match='ticket number'):
-        await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
+    snapshot = await DocBeeClient(session, 'https://example.com', 'secret').async_get_snapshot()
+    assert snapshot.priority_one_ticket_numbers is None
+    assert snapshot.priority_one_tickets == 0
 
 
 async def test_daily_counts_use_total_count_and_independent_scopes():
@@ -338,3 +339,31 @@ async def test_removed_selected_priority_disables_count_and_events():
     assert snapshot.priority_one_tickets is None
     assert snapshot.priority_one_ticket_numbers is None
     assert snapshot.open_tickets == 1
+
+
+@pytest.mark.parametrize("status", [400, 500])
+async def test_priority_event_http_failure_preserves_counts(status, caplog):
+    session = session_for(page([]), resource_page('queue', []),
+        resource_page('priority', [{'id': 77}]),
+        resource_page('ticket', [{'id': 1, 'owner': 20, 'priority': 77}]))
+    responses = list(session.get.side_effect)
+    failed = list(session_for({}, status=status).get.side_effect)
+    session.get.side_effect = responses + failed
+    snapshot = await DocBeeClient(session, 'https://example.com', 'secret', priority_one_ids=['77']).async_get_snapshot()
+    assert snapshot.priority_one_ticket_numbers is None
+    assert snapshot.priority_one_tickets == 1
+    assert snapshot.open_tickets == 1
+    assert snapshot.assigned_tickets == {'20': 1}
+    assert f'HTTP status {status}' in caplog.text
+    assert 'priorityIds' in caplog.text
+    assert 'secret' not in caplog.text
+
+
+async def test_http_diagnostics_hide_ids_and_query_values():
+    client = DocBeeClient(session_for({}, status=400), 'https://example.com', 'private-token')
+    with pytest.raises(DocBeeConnectionError) as exc:
+        await client._request('ticket/123456/history', {'fields': 'private-value'})
+    assert 'ticket/{id}/history' in str(exc.value)
+    assert 'fields' in str(exc.value)
+    for private in ('123456', 'private-token', 'private-value'):
+        assert private not in str(exc.value)

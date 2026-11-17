@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.5.0 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.5.1 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -504,3 +504,15 @@ Identitäten sowie Einrichtung, Duplikate, erneute Authentifizierung, echte
 Home-Assistant-Geräte-/Entitätsregistrierung, Benutzeränderungen, Ausfälle und
 Entladen der Integration. DocBee-Antworten werden simuliert. Die Tests
 ersetzen daher keinen Live-Test mit einer authentifizierten DocBee-Instanz.
+
+### HTTP 400 nach gespeicherter Prioritätsauswahl
+
+Ab 0.5.1 enthalten HTTP-Fehler den API-Pfad (IDs anonymisiert) sowie die Namen
+übergebener Parameter, keine Parameterwerte, Zugangsdaten oder Antwortinhalte.
+Scheitert nur die zusätzliche Ticketabfrage für Prio-Ereignisse, bleiben die
+Zähler verfügbar; der Ereignisvergleich pausiert. Teilantworten lösen keine
+Ereignisse aus und löschen die bisherige Vergleichsbasis nicht. Der nächste
+reguläre Abruf versucht es erneut. Authentifizierungsfehler werden weiterhin
+über die bestehende Reauthentifizierung behandelt. Fehler bei Basisabfragen
+können weiterhin das Setup/Update verhindern; dafür ist der neue Meldungstext
+entscheidend. Ein HTTP 400 beweist nicht, dass die Auswahl verloren gegangen ist.

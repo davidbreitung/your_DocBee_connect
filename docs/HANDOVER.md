@@ -1,7 +1,7 @@
 # Übergabe – zuerst lesen
 
 **Stand 17.11.2026.** Projekt: **Your Docbee Connect**, Home-Assistant-Integration
-für DocBee. Runtime **0.5.0** (neuester Codecommit: `git log -1`), Entwicklungsbranch
+für DocBee. Runtime **0.5.1** (neuester Codecommit: `git log -1`), Entwicklungsbranch
 **`main`**, Repository [davidbreitung/your_DocBee_connect](https://github.com/davidbreitung/your_DocBee_connect).
 Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chatimport.
 
@@ -11,7 +11,7 @@ Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chati
 2. `AGENTS.md`, diese Datei, `STATUS.md` und `TODO.md` lesen. Bei technischen
    Fragen `ARCHITECTURE.md` und `DECISIONS.md` hinzunehmen.
 3. Linux-/WSL-Testumgebung gemäß [Windows-Anleitung](WINDOWS_SETUP.md) einrichten.
-4. `python -m pytest -q`: bisher **114 Tests grün**, keine DocBee-Zugangsdaten nötig.
+4. `python -m pytest -q`: bisher **117 Tests grün**, keine DocBee-Zugangsdaten nötig.
 5. Noch nicht implementierte Arbeit nicht aus Chat-Zusammenfassungen als fertig
    ableiten. Vorher aktuellen Git-Diff/Log ansehen; keine alten Änderungen neu anwenden.
 
@@ -153,3 +153,17 @@ Optionsänderungen laden neu und setzen eine frische Ereignisbasis ohne Altalarm
 114 Tests bestanden. Nächster Schritt: Nutzer aktualisiert, wählt über
 Konfigurieren seine Prio 1 und prüft Zähler sowie eine echte Prioritätsänderung.
 Live-Abnahme und Benutzer-History-Abnahme bleiben offen.
+
+## Aktuell: 0.5.1 – HTTP 400 nach Prioritätsauswahl
+
+Nutzer bestätigt gespeicherte Auswahl, Screenshot zeigt danach Setup-Fehler HTTP
+400. Die frühere Vermutung einer nicht gespeicherten Auswahl ist widerlegt.
+Der auslösende Abruf ist noch nicht live identifiziert. Die öffentliche OpenAPI
+bestätigt `priorityIds` (kommagetrennte IDs) und `ticketNumber`; keine unbestätigte
+Parameteränderung vorgenommen. HTTP-Fehler nennen nun den anonymisierten Pfad und
+Parameternamen ohne Werte. Fehler der Prio-Ereignisticketabfrage (außer Authfehlern)
+setzen nur den Ereignisbestand auf unbekannt, nicht den ganzen Snapshot. Zähler
+bleiben erhalten, eine unvollständige Ereignismenge wird nie veröffentlicht.
+117 Tests bestanden. Nächster Schritt: Nutzer installiert 0.5.1 und liefert bei
+weiterem Fehler den neuen Meldungstext. HTTP-400-Ursache weiterhin ungeklärt;
+keine bestätigte Live-Behebung behaupten. Keine erneute Prioritätsauswahl nötig.

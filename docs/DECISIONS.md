@@ -72,3 +72,11 @@ wirkungslos. Fehlende ausgewählte IDs sind Fehler, keine leere Zählmenge.
 Ein Reload bei Optionsänderung setzt eine neue Ereignisbasis ohne Altalarme.
 Diese Entscheidung ergänzt/ersetzt frühere Regeln, die ausschließlich Wert 100
 als Prio-Definition vorsahen. Auswahl nach Ersteinrichtung über Konfigurieren.
+
+## D27 – Ereignisabfrage isolieren und HTTP-Fehler zuordnen (0.5.1)
+
+Gespeicherte Auswahl ist bestätigt, HTTP 400 aber noch keinem Abruf zugeordnet.
+Keine spekulative Änderung des dokumentierten Filters. HTTP-Fehler enthalten
+nur anonymisierten Pfad und Parameternamen. Fehler beim Abruf der Ereignistickets
+lassen Zähler weiterarbeiten, ohne eine Teilmenge/Nullmenge als valide Ereignisbasis
+zu verwenden. Authfehler bleiben reauthentifizierbar. Live-Ursache bleibt offen.

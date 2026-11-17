@@ -72,6 +72,7 @@ class DocBeeClient:
         self._token = token.strip()
         self._priority_one_ids = set(priority_one_ids or [])
         self._priority_warning: tuple[str, ...] = ()
+        self._priority_event_warning: str | None = None
 
     async def _page(self, offset: int, resource: str = "user", fields: str = "id,username,name", filters: dict | None = None, *, sort: bool = True) -> Any:
         params = {"fields": fields, "limit": PAGE_SIZE, "offset": offset}
@@ -92,7 +93,14 @@ class DocBeeClient:
                 if response.status in (401, 403):
                     raise DocBeeAuthError("Token rejected or user access forbidden")
                 if response.status != 200:
-                    raise DocBeeConnectionError(f"DocBee HTTP status {response.status}")
+                    # Only static route segments and parameter names, never IDs/values.
+                    route = "/".join(part if part in {
+                        "user", "queue", "priority", "ticket", "ticketStatus", "history", "statusChange",
+                    } else "{id}" for part in resource.split("/"))
+                    raise DocBeeConnectionError(
+                        f"DocBee HTTP status {response.status} "
+                        f"(resource: {route}; parameters: {','.join(sorted(params))})"
+                    )
                 try:
                     return await response.json()
                 except (ValueError, aiohttp.ContentTypeError) as err:
@@ -267,13 +275,27 @@ class DocBeeClient:
             if priority_one:
                 # Include closed tickets: closing/reopening must not look like a
                 # priority change, and priority changes on old tickets count too.
-                for row in await self._list(
-                    "ticket", "id,ticketNumber", {"priorityIds": ",".join(sorted(priority_one))}
-                ):
-                    number = row.get("ticketNumber")
-                    if not isinstance(number, str) or not number.strip() or len(number) > 255:
-                        raise DocBeeResponseError("Missing or invalid ticket number for priority events")
-                    event_tickets[str(row["id"])] = number
+                try:
+                    for row in await self._list(
+                        "ticket", "id,ticketNumber", {"priorityIds": ",".join(sorted(priority_one))}
+                    ):
+                        number = row.get("ticketNumber")
+                        if not isinstance(number, str) or not number.strip() or len(number) > 255:
+                            raise DocBeeResponseError("Missing or invalid ticket number for priority events")
+                        event_tickets[str(row["id"])] = number
+                except DocBeeAuthError:
+                    raise  # Reauthentication remains available for rejected tokens.
+                except DocBeeError as err:
+                    event_tickets = None  # Never publish an incomplete event set.
+                    warning = str(err)
+                    if warning != self._priority_event_warning:
+                        _LOGGER.warning(
+                            "Priority event ticket request failed: %s. "
+                            "Event comparison paused; ticket counts remain available", warning,
+                        )
+                        self._priority_event_warning = warning
+            if event_tickets is not None:
+                self._priority_event_warning = None
         return DocBeeSnapshot(
             users, queues, assigned, len(tickets),
             priority_count if priority_values_valid else None, event_tickets,

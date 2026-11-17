@@ -1,6 +1,6 @@
 # Projektstatus
 
-Stand: **17.11.2026**. Laufzeitversion **0.5.0**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
+Stand: **17.11.2026**. Laufzeitversion **0.5.1**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
 Statushistorien. Den exakten neuesten Commit mit `git log -1` prüfen.
 Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
@@ -21,7 +21,7 @@ Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
 ## Verifikation und Grenzen
 
-Die Suite enthält **114 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
+Die Suite enthält **117 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
 mit Python 3.13, HA Core 2025.6.3 und den Entwicklungsabhängigkeiten. Sie wurde
 bei der Erweiterung um Benutzer-Tageszähler erneut ausgeführt. `git diff --check` wird
 auch für den Dokumentationsstand geprüft. Windows/WSL-Anleitung ist vorbereitet,
@@ -117,3 +117,17 @@ Optionsänderungen laden neu und setzen eine frische Ereignisbasis ohne Altalarm
 114 Tests bestanden. Nächster Schritt: Nutzer aktualisiert, wählt über
 Konfigurieren seine Prio 1 und prüft Zähler sowie eine echte Prioritätsänderung.
 Live-Abnahme und Benutzer-History-Abnahme bleiben offen.
+
+## Aktuell: 0.5.1 – HTTP 400 nach Prioritätsauswahl
+
+Nutzer bestätigt gespeicherte Auswahl, Screenshot zeigt danach Setup-Fehler HTTP
+400. Die frühere Vermutung einer nicht gespeicherten Auswahl ist widerlegt.
+Der auslösende Abruf ist noch nicht live identifiziert. Die öffentliche OpenAPI
+bestätigt `priorityIds` (kommagetrennte IDs) und `ticketNumber`; keine unbestätigte
+Parameteränderung vorgenommen. HTTP-Fehler nennen nun den anonymisierten Pfad und
+Parameternamen ohne Werte. Fehler der Prio-Ereignisticketabfrage (außer Authfehlern)
+setzen nur den Ereignisbestand auf unbekannt, nicht den ganzen Snapshot. Zähler
+bleiben erhalten, eine unvollständige Ereignismenge wird nie veröffentlicht.
+117 Tests bestanden. Nächster Schritt: Nutzer installiert 0.5.1 und liefert bei
+weiterem Fehler den neuen Meldungstext. HTTP-400-Ursache weiterhin ungeklärt;
+keine bestätigte Live-Behebung behaupten. Keine erneute Prioritätsauswahl nötig.

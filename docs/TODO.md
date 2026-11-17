@@ -30,7 +30,7 @@ Produktivsysteme zu ändern oder sämtliche Ideen umzusetzen.
 - [x] Fehlendes Zahlenfeld bestätigt; explizite Prioritätsauswahl in 0.5.0 umgesetzt.
 - [ ] 0.5.0 live prüfen: Priorität über Konfigurieren wählen, Zähler und Ereignis
   bei neuer Prioritätszuordnung prüfen; Speichern darf keine Altalarme auslösen.
-- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 114 Tests ausführen,
+- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 117 Tests ausführen,
   Git-Roundtrip A → B → A bestätigen. Anleitung bislang nur auf Linux-Basis vorbereitet.
 - [ ] Prüfen, ob aktuelle Desktop-App-Version Cloud-/Remote-Chats offiziell
   geräteübergreifend fortsetzen kann. Installierte Version und Kontokonfiguration
@@ -52,3 +52,12 @@ Produktivsysteme zu ändern oder sämtliche Ideen umzusetzen.
 - „Vorgänge in Bearbeitung“: Status existiert beim Nutzer nicht.
 - „Offene Tagesabschlüsse“: explizit vorerst verworfen.
 - Vollständige Codex-Rohverläufe oder Auth-Dateien per Git/OneDrive kopieren.
+
+## Aktueller Blocker: HTTP 400
+
+- [ ] Nach 0.5.1 den konkreten fehlgeschlagenen Abruf anhand des neuen
+  Meldungstexts identifizieren. Auswahl bleibt laut Nutzer gespeichert.
+- [x] Prio-Ereignisabruf isolieren, keine Teilmengen als Ereignisbasis verwenden;
+  HTTP-Diagnose ohne IDs, Parameterwerte, Tokens und Antwortinhalte ergänzen.
+- [ ] Eigentliche serverseitige Ablehnungsursache mit anonymisierten Angaben
+  prüfen; keine geratenen Filter oder Wechsel auf numerische Priorität.
