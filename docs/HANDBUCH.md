@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.5.2 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.5.3 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -540,3 +540,14 @@ Fehlertext, keine erfolgreichen Ticketantworten. Server-Fehlertexte vor dem
 Teilen auf persönliche Inhalte prüfen/anonymisieren. Tokens nicht mitsenden.
 Keine Ausführungsrichtlinien oder TLS-Einstellungen dafür global ändern.
 Das Skript ist noch nicht unter Windows/live geprüft; HTTP-400-Ursache ist offen.
+
+### Datumsformat-Korrektur (0.5.3)
+
+Die API-Diagnose des Nutzers bestätigt: Tagesabfragen mit UTC-Zeitstempeln wie
+`2026-11-17T12:00:00.123Z` funktionieren; die zuvor gesendete Kombination aus
+sechs Nachkommastellen und `+00:00` wurde mit HTTP 400 abgelehnt. Ab 0.5.3 verwenden
+alle Tagesfilter das bestätigte Format mit drei Nachkommastellen und `Z`, sowohl
+für zentrale Zähler als auch für Kandidaten der Benutzer-Historienauswertung.
+Die lokale Mitternacht wird weiterhin anhand der HA-Zeitzone nach UTC umgerechnet.
+Endzeiten werden auf Millisekunden gekürzt, nicht in die Zukunft aufgerundet.
+Keine Änderung der Prioritätsauswahl oder Zugangsdaten erforderlich.

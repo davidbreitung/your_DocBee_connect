@@ -88,3 +88,12 @@ Tageszähler darf bei HTTP-/Schemafehlern nur sich selbst unverfügbar machen;
 Authfehler behalten den Reauth-Pfad. Keine Nullwerte und kein unbestätigter Wechsel
 von Scopes/Datumsformaten. Lesendes Diagnoseskript vergleicht mögliche Ursachen,
 bevor das dokumentierte API-Verhalten geändert wird.
+
+## D29 – UTC-Millisekunden mit Z für Tagesfilter (0.5.3)
+
+Nutzerdiagnose bestätigt HTTP 200 mit drei Nachkommastellen/Z für alle drei
+Scopes, HTTP 400 mit sechs Nachkommastellen/+00:00. Daher das nachgewiesen
+funktionierende Gesamtformat verwenden, ohne einzeln einen der beiden
+Unterschiede als alleinige Ursache zu behaupten. Gleiche Grenzen für zentrale
+und Benutzer-Tagesabfragen. HA-Zeitzone/DST bleiben unverändert; Endzeit auf
+Millisekunden kürzen. Sortierung und Scopes werden nicht verändert.

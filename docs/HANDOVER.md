@@ -1,7 +1,7 @@
 # Übergabe – zuerst lesen
 
 **Stand 17.11.2026.** Projekt: **Your Docbee Connect**, Home-Assistant-Integration
-für DocBee. Runtime **0.5.2** (neuester Codecommit: `git log -1`), Entwicklungsbranch
+für DocBee. Runtime **0.5.3** (neuester Codecommit: `git log -1`), Entwicklungsbranch
 **`main`**, Repository [davidbreitung/your_DocBee_connect](https://github.com/davidbreitung/your_DocBee_connect).
 Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chatimport.
 
@@ -11,7 +11,7 @@ Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chati
 2. `AGENTS.md`, diese Datei, `STATUS.md` und `TODO.md` lesen. Bei technischen
    Fragen `ARCHITECTURE.md` und `DECISIONS.md` hinzunehmen.
 3. Linux-/WSL-Testumgebung gemäß [Windows-Anleitung](WINDOWS_SETUP.md) einrichten.
-4. `python -m pytest -q`: bisher **120 Tests grün**, keine DocBee-Zugangsdaten nötig.
+4. `python -m pytest -q`: bisher **121 Tests grün**, keine DocBee-Zugangsdaten nötig.
 5. Noch nicht implementierte Arbeit nicht aus Chat-Zusammenfassungen als fertig
    ableiten. Vorher aktuellen Git-Diff/Log ansehen; keine alten Änderungen neu anwenden.
 
@@ -182,3 +182,18 @@ Datumsformat- und Scope-Abfragen; nur Status/Fehlertext, keine erfolgreichen
 Ticketantworten. PowerShell-Skript hier nicht ausgeführt (kein Live-Token und
 keine Windows-Abnahme). Nächster Schritt: 0.5.2 installieren, Diagnose ausführen,
 Fehlertexte vor Teilen anonymisieren. Keine Live-Behebung der Tageszählung behaupten.
+
+## Aktuell: 0.5.3 – bestätigtes Datumsformat verwenden
+
+Nutzer führte das Diagnoseskript aus: baseline=200, modified-offset=400,
+modified-Z=200, modified-Z-without-sort=200, created-Z=200, closed-Z=200.
+Die Kombination aus sechs Nachkommastellen und +00:00 wird abgelehnt;
+UTC mit drei Nachkommastellen und Z funktioniert. Nicht einzeln bewiesen ist,
+welcher der beiden Formatunterschiede entscheidend ist. Sortierung und die drei
+Scopes funktionieren im Z-Test. Frühere Notizen zur offenen Eingrenzung sind
+damit überholt. Coordinator erzeugt nun für zentrale Tageszähler und Benutzer-
+Kandidaten dieselben UTC-Grenzen im Format YYYY-MM-DDTHH:mm:ss.SSSZ.
+Mitternacht bleibt in HA-Zeitzone berechnet, Endzeit wird auf Millisekunden gekürzt.
+121 Tests bestanden, einschließlich Sommer-/Winterzeit und Mikrosekundenfall.
+Nächster Schritt: 0.5.3 installieren und reale Zähler prüfen. Erfolgreiche direkte
+API-Diagnose ist noch keine Live-Abnahme aller Sensoren oder Benutzerhistorien.

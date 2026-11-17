@@ -1,6 +1,6 @@
 # Projektstatus
 
-Stand: **17.11.2026**. Laufzeitversion **0.5.2**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
+Stand: **17.11.2026**. Laufzeitversion **0.5.3**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
 Statushistorien. Den exakten neuesten Commit mit `git log -1` prüfen.
 Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
@@ -21,7 +21,7 @@ Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
 ## Verifikation und Grenzen
 
-Die Suite enthält **120 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
+Die Suite enthält **121 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
 mit Python 3.13, HA Core 2025.6.3 und den Entwicklungsabhängigkeiten. Sie wurde
 bei der Erweiterung um Benutzer-Tageszähler erneut ausgeführt. `git diff --check` wird
 auch für den Dokumentationsstand geprüft. Windows/WSL-Anleitung ist vorbereitet,
@@ -146,3 +146,18 @@ Datumsformat- und Scope-Abfragen; nur Status/Fehlertext, keine erfolgreichen
 Ticketantworten. PowerShell-Skript hier nicht ausgeführt (kein Live-Token und
 keine Windows-Abnahme). Nächster Schritt: 0.5.2 installieren, Diagnose ausführen,
 Fehlertexte vor Teilen anonymisieren. Keine Live-Behebung der Tageszählung behaupten.
+
+## Aktuell: 0.5.3 – bestätigtes Datumsformat verwenden
+
+Nutzer führte das Diagnoseskript aus: baseline=200, modified-offset=400,
+modified-Z=200, modified-Z-without-sort=200, created-Z=200, closed-Z=200.
+Die Kombination aus sechs Nachkommastellen und +00:00 wird abgelehnt;
+UTC mit drei Nachkommastellen und Z funktioniert. Nicht einzeln bewiesen ist,
+welcher der beiden Formatunterschiede entscheidend ist. Sortierung und die drei
+Scopes funktionieren im Z-Test. Frühere Notizen zur offenen Eingrenzung sind
+damit überholt. Coordinator erzeugt nun für zentrale Tageszähler und Benutzer-
+Kandidaten dieselben UTC-Grenzen im Format YYYY-MM-DDTHH:mm:ss.SSSZ.
+Mitternacht bleibt in HA-Zeitzone berechnet, Endzeit wird auf Millisekunden gekürzt.
+121 Tests bestanden, einschließlich Sommer-/Winterzeit und Mikrosekundenfall.
+Nächster Schritt: 0.5.3 installieren und reale Zähler prüfen. Erfolgreiche direkte
+API-Diagnose ist noch keine Live-Abnahme aller Sensoren oder Benutzerhistorien.

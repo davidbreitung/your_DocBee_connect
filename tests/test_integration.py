@@ -265,13 +265,14 @@ async def test_priority_events_baseline_transitions_and_restore(hass):
     unsubscribe()
 
 
-@pytest.mark.parametrize('now,start', [
-    ('2026-11-17T12:00:00+00:00', '2026-11-16T23:00:00+00:00'),
-    ('2026-03-29T12:00:00+00:00', '2026-03-28T23:00:00+00:00'),
-    ('2026-10-25T12:00:00+00:00', '2026-10-24T22:00:00+00:00'),
-    ('2026-11-16T23:00:00+00:00', '2026-11-16T23:00:00+00:00'),
+@pytest.mark.parametrize('now,start,end', [
+    ('2026-11-17T12:00:00+00:00', '2026-11-16T23:00:00.000Z', '2026-11-17T12:00:00.000Z'),
+    ('2026-03-29T12:00:00+00:00', '2026-03-28T23:00:00.000Z', '2026-03-29T12:00:00.000Z'),
+    ('2026-10-25T12:00:00+00:00', '2026-10-24T22:00:00.000Z', '2026-10-25T12:00:00.000Z'),
+    ('2026-11-16T23:00:00+00:00', '2026-11-16T23:00:00.000Z', '2026-11-16T23:00:00.000Z'),
+    ('2026-11-17T12:00:00.123456+00:00', '2026-11-16T23:00:00.000Z', '2026-11-17T12:00:00.123Z'),
 ])
-async def test_daily_counts_follow_ha_timezone_and_dst(hass, now, start):
+async def test_daily_counts_follow_ha_timezone_and_dst(hass, now, start, end):
     from datetime import datetime
     from unittest.mock import AsyncMock, MagicMock
     from custom_components.docbee.coordinator import DocBeeCoordinator
@@ -289,7 +290,8 @@ async def test_daily_counts_follow_ha_timezone_and_dst(hass, now, start):
     coordinator = DocBeeCoordinator(hass, entry, client)
     with patch('custom_components.docbee.coordinator.dt_util.utcnow', return_value=datetime.fromisoformat(now)):
         result = await coordinator._async_update_data()
-    client.async_get_daily_counts.assert_awaited_once_with(start, now)
+    client.async_get_daily_counts.assert_awaited_once_with(start, end)
+    client.async_get_user_daily_counts.assert_awaited_once_with(start, end, set(USERS))
     assert result.modified_today == result.created_today == result.closed_today == 0
 
 

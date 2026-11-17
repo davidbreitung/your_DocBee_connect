@@ -161,3 +161,12 @@ auf Detail-Nachabfragen. Die Prioritätsliste prüft weiterhin die Sichtbarkeit 
 Auswahl. Ein Update-Listener lädt die Integration neu; bestehende Ereignis-
 Baseline-Logik schützt vor Altereignissen. Leere/fehlende Optionen erhalten den
 bisherigen automatischen Modus. Kein Konfigurationsversionswechsel nötig.
+
+## Datumsserialisierung (0.5.3)
+
+Der Coordinator berechnet lokale Mitternacht in der HA-Zeitzone, konvertiert
+nach UTC und serialisiert Start/Ende für beide Tageszählpfade mit
+`isoformat(timespec="milliseconds")` und UTC-Suffix `Z`. Diese Kombination ist
+gegenüber der Instanz durch Nutzerdiagnose bestätigt. Das alte Format mit
+Mikrosekunden und Offset wurde mit HTTP 400 abgelehnt. Parser für Historieneinträge
+bleiben tolerant gegenüber gültigen zeitzonenbehafteten ISO-Zeitstempeln.

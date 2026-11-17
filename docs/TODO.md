@@ -30,7 +30,7 @@ Produktivsysteme zu ändern oder sämtliche Ideen umzusetzen.
 - [x] Fehlendes Zahlenfeld bestätigt; explizite Prioritätsauswahl in 0.5.0 umgesetzt.
 - [ ] 0.5.0 live prüfen: Priorität über Konfigurieren wählen, Zähler und Ereignis
   bei neuer Prioritätszuordnung prüfen; Speichern darf keine Altalarme auslösen.
-- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 120 Tests ausführen,
+- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 121 Tests ausführen,
   Git-Roundtrip A → B → A bestätigen. Anleitung bislang nur auf Linux-Basis vorbereitet.
 - [ ] Prüfen, ob aktuelle Desktop-App-Version Cloud-/Remote-Chats offiziell
   geräteübergreifend fortsetzen kann. Installierte Version und Kontokonfiguration
@@ -68,3 +68,12 @@ Produktivsysteme zu ändern oder sämtliche Ideen umzusetzen.
   Tageszähler isoliert und None als unavailable dargestellt.
 - [ ] `scripts/diagnose-daily-counts.ps1` auf Windows ausführen und anonymisierte
   Ergebnisse prüfen. Format/Scope-/Sortierungsursache bislang unbestätigt.
+
+### Aktualisierung 0.5.3
+
+- [x] Diagnose vom Nutzer erhalten: nur modified-offset liefert 400, alle
+  Z-Varianten und Basisabfrage 200. Datumsformat als Ursache eingegrenzt.
+- [x] Zentrale und benutzerbezogene Tagesabfragen auf UTC-Millisekunden mit Z
+  umgestellt; Tests für Tagesgrenzen/Zeitumstellung/Mikrosekunden aktualisiert.
+- [ ] 0.5.3 live prüfen: zentrale Tageszähler und Benutzer-History-Zähler.
+  Die genaue Bedeutung und Berechtigung der History bleibt separat zu prüfen.

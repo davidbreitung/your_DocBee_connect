@@ -46,11 +46,13 @@ class DocBeeCoordinator(DataUpdateCoordinator[DocBeeSnapshot]):
             now = dt_util.utcnow()
             local_now = now.astimezone(ZoneInfo(self.hass.config.time_zone))
             midnight = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-            counts = await self.client.async_get_daily_counts(
-                dt_util.as_utc(midnight).isoformat(), now.isoformat(),
-            )
+            # DocBee accepts UTC milliseconds with Z; the instance rejects
+            # our previous microseconds/+00:00 representation with HTTP 400.
+            start = dt_util.as_utc(midnight).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+            end = dt_util.as_utc(now).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+            counts = await self.client.async_get_daily_counts(start, end)
             user_counts = await self.client.async_get_user_daily_counts(
-                dt_util.as_utc(midnight).isoformat(), now.isoformat(), set(snapshot.users),
+                start, end, set(snapshot.users),
             )
             return replace(snapshot, **counts, **user_counts)
         except DocBeeAuthError as err:
