@@ -255,9 +255,9 @@ async def test_daily_counts_use_total_count_and_independent_scopes():
 
 @pytest.mark.parametrize('count', [None, True, -1, '7'])
 async def test_daily_counts_reject_bad_totals(count):
-    session = session_for({'ticket': [], 'totalCount': count})
-    with pytest.raises(DocBeeResponseError):
-        await DocBeeClient(session, 'https://example.com', 'secret').async_get_daily_counts('start', 'end')
+    session = session_for(*[{'ticket': [], 'totalCount': count}] * 3)
+    counts = await DocBeeClient(session, 'https://example.com', 'secret').async_get_daily_counts('start', 'end')
+    assert counts == {'modified_today': None, 'created_today': None, 'closed_today': None}
 
 
 @pytest.mark.parametrize("row", [{"id": 77}, {"id": 77, "priority": None}])
@@ -367,3 +367,24 @@ async def test_http_diagnostics_hide_ids_and_query_values():
     assert 'fields' in str(exc.value)
     for private in ('123456', 'private-token', 'private-value'):
         assert private not in str(exc.value)
+
+
+async def test_daily_http_failure_is_independent_and_recovers(caplog):
+    bad = list(session_for({}, status=400).get.side_effect)
+    good = list(session_for(resource_page('ticket', [], total=7)).get.side_effect)
+    session = session_for()
+    session.get.side_effect = (bad + good + good) * 2 + good * 3 + bad + good * 2
+    client = DocBeeClient(session, 'https://example.com', 'secret')
+    for _ in range(2):
+        counts = await client.async_get_daily_counts('start', 'end')
+        assert counts == {'modified_today': None, 'created_today': 7, 'closed_today': 7}
+    assert caplog.text.count('Daily ticket count TICKET_MODIFIED unavailable') == 1
+    assert (await client.async_get_daily_counts('start', 'end'))['modified_today'] == 7
+    await client.async_get_daily_counts('start', 'end')
+    assert caplog.text.count('Daily ticket count TICKET_MODIFIED unavailable') == 2
+
+
+async def test_daily_auth_failure_still_requests_reauthentication():
+    client = DocBeeClient(session_for({}, status=401), 'https://example.com', 'secret')
+    with pytest.raises(DocBeeAuthError):
+        await client.async_get_daily_counts('start', 'end')

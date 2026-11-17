@@ -30,7 +30,7 @@ Produktivsysteme zu ändern oder sämtliche Ideen umzusetzen.
 - [x] Fehlendes Zahlenfeld bestätigt; explizite Prioritätsauswahl in 0.5.0 umgesetzt.
 - [ ] 0.5.0 live prüfen: Priorität über Konfigurieren wählen, Zähler und Ereignis
   bei neuer Prioritätszuordnung prüfen; Speichern darf keine Altalarme auslösen.
-- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 117 Tests ausführen,
+- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 120 Tests ausführen,
   Git-Roundtrip A → B → A bestätigen. Anleitung bislang nur auf Linux-Basis vorbereitet.
 - [ ] Prüfen, ob aktuelle Desktop-App-Version Cloud-/Remote-Chats offiziell
   geräteübergreifend fortsetzen kann. Installierte Version und Kontokonfiguration
@@ -61,3 +61,10 @@ Produktivsysteme zu ändern oder sämtliche Ideen umzusetzen.
   HTTP-Diagnose ohne IDs, Parameterwerte, Tokens und Antwortinhalte ergänzen.
 - [ ] Eigentliche serverseitige Ablehnungsursache mit anonymisierten Angaben
   prüfen; keine geratenen Filter oder Wechsel auf numerische Priorität.
+
+### Aktualisierung 0.5.2
+
+- [x] Screenshot identifiziert Tagesabfrage als Setup-Blocker; Fehler pro zentralem
+  Tageszähler isoliert und None als unavailable dargestellt.
+- [ ] `scripts/diagnose-daily-counts.ps1` auf Windows ausführen und anonymisierte
+  Ergebnisse prüfen. Format/Scope-/Sortierungsursache bislang unbestätigt.

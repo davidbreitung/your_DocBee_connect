@@ -80,3 +80,11 @@ Keine spekulative Änderung des dokumentierten Filters. HTTP-Fehler enthalten
 nur anonymisierten Pfad und Parameternamen. Fehler beim Abruf der Ereignistickets
 lassen Zähler weiterarbeiten, ohne eine Teilmenge/Nullmenge als valide Ereignisbasis
 zu verwenden. Authfehler bleiben reauthentifizierbar. Live-Ursache bleibt offen.
+
+## D28 – Tageszähler unabhängig behandeln (0.5.2)
+
+Die neue Fehlermeldung grenzt den Setup-Abbruch auf Tagesfilter ein. Jeder zentrale
+Tageszähler darf bei HTTP-/Schemafehlern nur sich selbst unverfügbar machen;
+Authfehler behalten den Reauth-Pfad. Keine Nullwerte und kein unbestätigter Wechsel
+von Scopes/Datumsformaten. Lesendes Diagnoseskript vergleicht mögliche Ursachen,
+bevor das dokumentierte API-Verhalten geändert wird.

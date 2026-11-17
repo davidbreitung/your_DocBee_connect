@@ -1,6 +1,6 @@
 # Projektstatus
 
-Stand: **17.11.2026**. Laufzeitversion **0.5.1**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
+Stand: **17.11.2026**. Laufzeitversion **0.5.2**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
 Statushistorien. Den exakten neuesten Commit mit `git log -1` prüfen.
 Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
@@ -21,7 +21,7 @@ Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
 ## Verifikation und Grenzen
 
-Die Suite enthält **117 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
+Die Suite enthält **120 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
 mit Python 3.13, HA Core 2025.6.3 und den Entwicklungsabhängigkeiten. Sie wurde
 bei der Erweiterung um Benutzer-Tageszähler erneut ausgeführt. `git diff --check` wird
 auch für den Dokumentationsstand geprüft. Windows/WSL-Anleitung ist vorbereitet,
@@ -131,3 +131,18 @@ bleiben erhalten, eine unvollständige Ereignismenge wird nie veröffentlicht.
 117 Tests bestanden. Nächster Schritt: Nutzer installiert 0.5.1 und liefert bei
 weiterem Fehler den neuen Meldungstext. HTTP-400-Ursache weiterhin ungeklärt;
 keine bestätigte Live-Behebung behaupten. Keine erneute Prioritätsauswahl nötig.
+
+## Aktuell: 0.5.2 – Tageszähler verursachen Setup-Fehler
+
+Der neue Screenshot zeigt `/ticket` mit `startDate,endDate,ticketScope` und
+Pagination/Sortierung. Damit ist die zentrale Tageszählung als Setup-Blocker
+identifiziert (Benutzer-Kandidatenabfragen isolieren ihre Fehler bereits).
+OpenAPI bestätigt Datumsfilter und alle drei Scopes; konkrete Ablehnungsursache
+weiter offen. Jeder zentrale Tageszähler fängt nun Nicht-Auth-API-/Schemafehler
+separat ab und liefert None/unavailable statt Null oder Setup-Abbruch. Warnungen
+nennen den Scope, gleiche Fehler wiederholen sich erst nach Wiederherstellung.
+120 Tests bestanden. `scripts/diagnose-daily-counts.ps1` vergleicht lesend Basis-,
+Datumsformat- und Scope-Abfragen; nur Status/Fehlertext, keine erfolgreichen
+Ticketantworten. PowerShell-Skript hier nicht ausgeführt (kein Live-Token und
+keine Windows-Abnahme). Nächster Schritt: 0.5.2 installieren, Diagnose ausführen,
+Fehlertexte vor Teilen anonymisieren. Keine Live-Behebung der Tageszählung behaupten.

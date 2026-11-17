@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.5.1 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.5.2 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -516,3 +516,27 @@ reguläre Abruf versucht es erneut. Authentifizierungsfehler werden weiterhin
 über die bestehende Reauthentifizierung behandelt. Fehler bei Basisabfragen
 können weiterhin das Setup/Update verhindern; dafür ist der neue Meldungstext
 entscheidend. Ein HTTP 400 beweist nicht, dass die Auswahl verloren gegangen ist.
+
+### HTTP 400 bei Tageszählern (0.5.2)
+
+Anfragen mit `startDate`, `endDate` und `ticketScope` gehören zur Tageszählung.
+Ab 0.5.2 blockiert ein Nicht-Authentifizierungsfehler eines zentralen Tageszählers
+weder die anderen Tageszähler noch den Integrationsstart. Der betroffene Sensor
+wird `unavailable`, nicht 0. Reauthentifizierung bleibt bei HTTP 401/403 erhalten.
+Der Abruf wird im Fünf-Minuten-Intervall erneut versucht.
+
+Zur gezielten Diagnose liegt [diagnose-daily-counts.ps1](../scripts/diagnose-daily-counts.ps1)
+im Repository. Im aktuellen lokalen Checkout in PowerShell ausführen:
+
+```powershell
+& .\scripts\diagnose-daily-counts.ps1
+```
+
+Das Skript fragt den Bearer-Token verdeckt ab und sendet sechs lesende Requests
+mit `limit=1`. Es vergleicht Basisabfrage, Datumsformate, Sortierung und Scopes.
+Die Diagnose verwendet Mitternacht in der Windows-Zeitzone; die Integration
+verwendet weiterhin die HA-Zeitzone. Es zeigt nur Testname, HTTP-Status und
+Fehlertext, keine erfolgreichen Ticketantworten. Server-Fehlertexte vor dem
+Teilen auf persönliche Inhalte prüfen/anonymisieren. Tokens nicht mitsenden.
+Keine Ausführungsrichtlinien oder TLS-Einstellungen dafür global ändern.
+Das Skript ist noch nicht unter Windows/live geprüft; HTTP-400-Ursache ist offen.

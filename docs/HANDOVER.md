@@ -1,7 +1,7 @@
 # Übergabe – zuerst lesen
 
 **Stand 17.11.2026.** Projekt: **Your Docbee Connect**, Home-Assistant-Integration
-für DocBee. Runtime **0.5.1** (neuester Codecommit: `git log -1`), Entwicklungsbranch
+für DocBee. Runtime **0.5.2** (neuester Codecommit: `git log -1`), Entwicklungsbranch
 **`main`**, Repository [davidbreitung/your_DocBee_connect](https://github.com/davidbreitung/your_DocBee_connect).
 Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chatimport.
 
@@ -11,7 +11,7 @@ Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chati
 2. `AGENTS.md`, diese Datei, `STATUS.md` und `TODO.md` lesen. Bei technischen
    Fragen `ARCHITECTURE.md` und `DECISIONS.md` hinzunehmen.
 3. Linux-/WSL-Testumgebung gemäß [Windows-Anleitung](WINDOWS_SETUP.md) einrichten.
-4. `python -m pytest -q`: bisher **117 Tests grün**, keine DocBee-Zugangsdaten nötig.
+4. `python -m pytest -q`: bisher **120 Tests grün**, keine DocBee-Zugangsdaten nötig.
 5. Noch nicht implementierte Arbeit nicht aus Chat-Zusammenfassungen als fertig
    ableiten. Vorher aktuellen Git-Diff/Log ansehen; keine alten Änderungen neu anwenden.
 
@@ -167,3 +167,18 @@ bleiben erhalten, eine unvollständige Ereignismenge wird nie veröffentlicht.
 117 Tests bestanden. Nächster Schritt: Nutzer installiert 0.5.1 und liefert bei
 weiterem Fehler den neuen Meldungstext. HTTP-400-Ursache weiterhin ungeklärt;
 keine bestätigte Live-Behebung behaupten. Keine erneute Prioritätsauswahl nötig.
+
+## Aktuell: 0.5.2 – Tageszähler verursachen Setup-Fehler
+
+Der neue Screenshot zeigt `/ticket` mit `startDate,endDate,ticketScope` und
+Pagination/Sortierung. Damit ist die zentrale Tageszählung als Setup-Blocker
+identifiziert (Benutzer-Kandidatenabfragen isolieren ihre Fehler bereits).
+OpenAPI bestätigt Datumsfilter und alle drei Scopes; konkrete Ablehnungsursache
+weiter offen. Jeder zentrale Tageszähler fängt nun Nicht-Auth-API-/Schemafehler
+separat ab und liefert None/unavailable statt Null oder Setup-Abbruch. Warnungen
+nennen den Scope, gleiche Fehler wiederholen sich erst nach Wiederherstellung.
+120 Tests bestanden. `scripts/diagnose-daily-counts.ps1` vergleicht lesend Basis-,
+Datumsformat- und Scope-Abfragen; nur Status/Fehlertext, keine erfolgreichen
+Ticketantworten. PowerShell-Skript hier nicht ausgeführt (kein Live-Token und
+keine Windows-Abnahme). Nächster Schritt: 0.5.2 installieren, Diagnose ausführen,
+Fehlertexte vor Teilen anonymisieren. Keine Live-Behebung der Tageszählung behaupten.

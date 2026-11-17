@@ -73,6 +73,7 @@ class DocBeeClient:
         self._priority_one_ids = set(priority_one_ids or [])
         self._priority_warning: tuple[str, ...] = ()
         self._priority_event_warning: str | None = None
+        self._daily_warnings: dict[str, str] = {}
 
     async def _page(self, offset: int, resource: str = "user", fields: str = "id,username,name", filters: dict | None = None, *, sort: bool = True) -> Any:
         params = {"fields": fields, "limit": PAGE_SIZE, "offset": offset}
@@ -301,7 +302,7 @@ class DocBeeClient:
             priority_count if priority_values_valid else None, event_tickets,
         )
 
-    async def async_get_daily_counts(self, start: str, end: str) -> dict[str, int]:
+    async def async_get_daily_counts(self, start: str, end: str) -> dict[str, int | None]:
         """Read totalCount for distinct tickets matching each documented date scope."""
         counts = {}
         for key, scope in (
@@ -309,17 +310,27 @@ class DocBeeClient:
             ("created_today", "TICKET_CREATED"),
             ("closed_today", "TICKET_CLOSED"),
         ):
-            payload = await self._page(0, "ticket", "id", {
-                "limit": 1, "startDate": start, "endDate": end, "ticketScope": scope,
-            })
-            if (
-                not isinstance(payload, dict)
-                or not isinstance(payload.get("ticket"), list)
-                or type(payload.get("totalCount")) is not int
-                or payload["totalCount"] < 0
-            ):
-                raise DocBeeResponseError("Invalid daily ticket count response")
-            counts[key] = payload["totalCount"]
+            try:
+                payload = await self._page(0, "ticket", "id", {
+                    "limit": 1, "startDate": start, "endDate": end, "ticketScope": scope,
+                })
+                if (
+                    not isinstance(payload, dict)
+                    or not isinstance(payload.get("ticket"), list)
+                    or type(payload.get("totalCount")) is not int
+                    or payload["totalCount"] < 0
+                ):
+                    raise DocBeeResponseError("Invalid daily ticket count response")
+                counts[key] = payload["totalCount"]
+                self._daily_warnings.pop(scope, None)
+            except DocBeeAuthError:
+                raise
+            except DocBeeError as err:
+                counts[key] = None
+                warning = str(err)
+                if self._daily_warnings.get(scope) != warning:
+                    _LOGGER.warning("Daily ticket count %s unavailable: %s; other counts continue", scope, warning)
+                    self._daily_warnings[scope] = warning
         return counts
 
     async def async_get_user_daily_counts(self, start: str, end: str, user_ids: set[str]) -> dict:
@@ -331,7 +342,7 @@ class DocBeeClient:
                 "startDate": start, "endDate": end, "ticketScope": "TICKET_MODIFIED",
             })
         except DocBeeError as err:
-            _LOGGER.warning("User daily counts unavailable: candidate request failed (%s)", type(err).__name__)
+            _LOGGER.warning("User daily counts unavailable: TICKET_MODIFIED candidate request failed (%s)", str(err))
             return unavailable
         modified = dict.fromkeys(user_ids, 0)
         closed = dict.fromkeys(user_ids, 0)

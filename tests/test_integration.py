@@ -347,3 +347,23 @@ async def test_setup_passes_saved_priority_selection(hass):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
         assert entry.runtime_data.client._priority_one_ids == {'77'}
+
+
+async def test_setup_with_unavailable_daily_counts(hass):
+    entry = MockConfigEntry(domain=DOMAIN, data=DATA)
+    entry.add_to_hass(hass)
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_snapshot', return_value=snapshot()), patch(
+        'custom_components.docbee.api.DocBeeClient.async_get_daily_counts',
+        return_value={'modified_today': None, 'created_today': 0, 'closed_today': None},
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    registry = er.async_get(hass)
+    def state(key):
+        entity_id = registry.async_get_entity_id('sensor', DOMAIN, f'{entry.entry_id}:central:{key}')
+        return hass.states.get(entity_id).state
+    assert state('modified_today') == 'unavailable'
+    assert state('closed_today') == 'unavailable'
+    assert state('created_today') == '0'
+    assert state('open_tickets') == '5'
+    assert state('priority_one_tickets') == '1'
