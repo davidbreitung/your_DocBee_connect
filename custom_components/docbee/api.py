@@ -369,7 +369,10 @@ class DocBeeClient:
             try:
                 history = await self._request(f"{ticket_path}/history", {"exposeDeletedInExpand": "true"})
                 editors = modified_users(history, start_time, end_time)
-            except (DocBeeError, HistoryFormatError) as err:
+            except HistoryFormatError as err:
+                # Parser errors contain only static schema paths/types/reasons.
+                edit_errors.add(f"HistoryFormatError: {err}")
+            except DocBeeError as err:
                 edit_errors.add(type(err).__name__)
             if closed_statuses is not None:
                 try:

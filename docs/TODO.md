@@ -30,7 +30,7 @@ Produktivsysteme zu ändern oder sämtliche Ideen umzusetzen.
 - [x] Fehlendes Zahlenfeld bestätigt; explizite Prioritätsauswahl in 0.5.0 umgesetzt.
 - [ ] 0.5.0 live prüfen: Priorität über Konfigurieren wählen, Zähler und Ereignis
   bei neuer Prioritätszuordnung prüfen; Speichern darf keine Altalarme auslösen.
-- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 121 Tests ausführen,
+- [ ] Windows-PC B anhand `WINDOWS_SETUP.md` einrichten, 125 Tests ausführen,
   Git-Roundtrip A → B → A bestätigen. Anleitung bislang nur auf Linux-Basis vorbereitet.
 - [ ] Prüfen, ob aktuelle Desktop-App-Version Cloud-/Remote-Chats offiziell
   geräteübergreifend fortsetzen kann. Installierte Version und Kontokonfiguration
@@ -77,3 +77,10 @@ Produktivsysteme zu ändern oder sämtliche Ideen umzusetzen.
   umgestellt; Tests für Tagesgrenzen/Zeitumstellung/Mikrosekunden aktualisiert.
 - [ ] 0.5.3 live prüfen: zentrale Tageszähler und Benutzer-History-Zähler.
   Die genaue Bedeutung und Berechtigung der History bleibt separat zu prüfen.
+
+### Aktuell 0.5.4 – allgemeine Änderungshistorie
+
+- [x] Nutzer bestätigt Betrieb nach Datumsfix, Schließungszähler liefert Werte.
+- [x] Konkreter Fehler ist HistoryFormatError; Diagnose um Grund/Pfad/Typ erweitert.
+- [ ] Neue Warnung nach Update erheben und betroffene Struktur anonymisiert prüfen.
+  Keine unbestätigte Vererbung von Parent-Datum/Actor und kein stilles Überspringen.

@@ -97,3 +97,11 @@ funktionierende Gesamtformat verwenden, ohne einzeln einen der beiden
 Unterschiede als alleinige Ursache zu behaupten. Gleiche Grenzen für zentrale
 und Benutzer-Tagesabfragen. HA-Zeitzone/DST bleiben unverändert; Endzeit auf
 Millisekunden kürzen. Sortierung und Scopes werden nicht verändert.
+
+## D30 – Parserfehler begründen, keine ungeprüfte Lockerung (0.5.4)
+
+HistoryFormatError bestätigt eine Abweichung vom bisher beobachteten Format,
+aber nicht deren Ursache. Statt fehlende Felder zu erraten, den sicheren
+Parsergrund mit statischen Schema-Pfaden und Datentypen protokollieren. Keine
+Rohdaten/IDs, keine Parent-Vererbung ohne Beleg, keine Teilzahlen als Vollzählung.
+Tests prüfen Diagnose und Abwesenheit synthetischer privater Inhalte.

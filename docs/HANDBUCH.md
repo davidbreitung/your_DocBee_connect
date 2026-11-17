@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.5.3 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.5.4 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -551,3 +551,16 @@ für zentrale Zähler als auch für Kandidaten der Benutzer-Historienauswertung.
 Die lokale Mitternacht wird weiterhin anhand der HA-Zeitzone nach UTC umgerechnet.
 Endzeiten werden auf Millisekunden gekürzt, nicht in die Zukunft aufgerundet.
 Keine Änderung der Prioritätsauswahl oder Zugangsdaten erforderlich.
+
+### Bearbeitete Tickets nicht verfügbar, Schließungen vorhanden
+
+Die Benutzerzähler nutzen unterschiedliche Historien. Eine gültige Schließungszahl
+beweist nicht, dass die allgemeine Änderungshistorie verarbeitet werden konnte.
+Wenn eine Historie nicht ausgewertet werden kann, ist die Bearbeitungszahl für
+alle Benutzer unverfügbar, um unvollständige Zahlen zu vermeiden.
+Ab 0.5.4 enthält `User editing counts unavailable` bei `HistoryFormatError` den
+Strukturpfad und Fehlergrund, etwa `childItems[].date (missing)` oder
+`history[].items[].childItems: expected array, got NoneType`. Diese Beispiele
+sind mögliche Diagnosen, keine bestätigte Ursache in der Nutzerinstanz.
+Für weitere Untersuchung die vollständige neue Warnung bereitstellen; sie
+enthält keine Ticket-/Benutzer-IDs, Namen, Nachrichten oder Datumswerte.

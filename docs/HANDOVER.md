@@ -1,7 +1,7 @@
 # Übergabe – zuerst lesen
 
 **Stand 17.11.2026.** Projekt: **Your Docbee Connect**, Home-Assistant-Integration
-für DocBee. Runtime **0.5.3** (neuester Codecommit: `git log -1`), Entwicklungsbranch
+für DocBee. Runtime **0.5.4** (neuester Codecommit: `git log -1`), Entwicklungsbranch
 **`main`**, Repository [davidbreitung/your_DocBee_connect](https://github.com/davidbreitung/your_DocBee_connect).
 Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chatimport.
 
@@ -11,7 +11,7 @@ Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chati
 2. `AGENTS.md`, diese Datei, `STATUS.md` und `TODO.md` lesen. Bei technischen
    Fragen `ARCHITECTURE.md` und `DECISIONS.md` hinzunehmen.
 3. Linux-/WSL-Testumgebung gemäß [Windows-Anleitung](WINDOWS_SETUP.md) einrichten.
-4. `python -m pytest -q`: bisher **121 Tests grün**, keine DocBee-Zugangsdaten nötig.
+4. `python -m pytest -q`: bisher **125 Tests grün**, keine DocBee-Zugangsdaten nötig.
 5. Noch nicht implementierte Arbeit nicht aus Chat-Zusammenfassungen als fertig
    ableiten. Vorher aktuellen Git-Diff/Log ansehen; keine alten Änderungen neu anwenden.
 
@@ -197,3 +197,18 @@ Mitternacht bleibt in HA-Zeitzone berechnet, Endzeit wird auf Millisekunden gek�
 121 Tests bestanden, einschließlich Sommer-/Winterzeit und Mikrosekundenfall.
 Nächster Schritt: 0.5.3 installieren und reale Zähler prüfen. Erfolgreiche direkte
 API-Diagnose ist noch keine Live-Abnahme aller Sensoren oder Benutzerhistorien.
+
+## Aktuell: 0.5.4 – genaue History-Formatdiagnose
+
+Nutzer bestätigt, dass die Integration nach 0.5.3 läuft. Screenshot: ein Benutzer
+hat 5 geschlossene Tickets, aber bearbeitete Tickets sind nicht verfügbar.
+Log bestätigt `HistoryFormatError`, nicht eine fehlende Authentifizierung für
+diesen konkreten Fehler. Der bisherige Code verwarf die vorhandene Fehlerbegründung
+und protokollierte nur den Klassennamen. 0.5.4 gibt für Bearbeitungshistorien den
+statischen Strukturpfad, Datentyp und Parsergrund aus, ohne IDs/Namen/Datumswerte/
+Messages oder Tokens. Root-Einträge und childItems werden unterschieden.
+Zählregeln bleiben unverändert: kein Überspringen unbekannter Einträge und keine
+Teilzahlen als vollständige Bearbeitungszahl. Schließungszählung bleibt unabhängig.
+125 Tests bestanden. Nächster Schritt: Nutzer installiert 0.5.4 und liefert die
+neue detaillierte HistoryFormatError-Warnung; erst danach Schema gezielt prüfen.
+Die eigentliche Formatabweichung ist weiterhin unbekannt und nicht behoben.

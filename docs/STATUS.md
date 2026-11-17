@@ -1,6 +1,6 @@
 # Projektstatus
 
-Stand: **17.11.2026**. Laufzeitversion **0.5.3**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
+Stand: **17.11.2026**. Laufzeitversion **0.5.4**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
 Statushistorien. Den exakten neuesten Commit mit `git log -1` prüfen.
 Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
@@ -21,7 +21,7 @@ Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
 ## Verifikation und Grenzen
 
-Die Suite enthält **121 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
+Die Suite enthält **125 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
 mit Python 3.13, HA Core 2025.6.3 und den Entwicklungsabhängigkeiten. Sie wurde
 bei der Erweiterung um Benutzer-Tageszähler erneut ausgeführt. `git diff --check` wird
 auch für den Dokumentationsstand geprüft. Windows/WSL-Anleitung ist vorbereitet,
@@ -161,3 +161,18 @@ Mitternacht bleibt in HA-Zeitzone berechnet, Endzeit wird auf Millisekunden gek�
 121 Tests bestanden, einschließlich Sommer-/Winterzeit und Mikrosekundenfall.
 Nächster Schritt: 0.5.3 installieren und reale Zähler prüfen. Erfolgreiche direkte
 API-Diagnose ist noch keine Live-Abnahme aller Sensoren oder Benutzerhistorien.
+
+## Aktuell: 0.5.4 – genaue History-Formatdiagnose
+
+Nutzer bestätigt, dass die Integration nach 0.5.3 läuft. Screenshot: ein Benutzer
+hat 5 geschlossene Tickets, aber bearbeitete Tickets sind nicht verfügbar.
+Log bestätigt `HistoryFormatError`, nicht eine fehlende Authentifizierung für
+diesen konkreten Fehler. Der bisherige Code verwarf die vorhandene Fehlerbegründung
+und protokollierte nur den Klassennamen. 0.5.4 gibt für Bearbeitungshistorien den
+statischen Strukturpfad, Datentyp und Parsergrund aus, ohne IDs/Namen/Datumswerte/
+Messages oder Tokens. Root-Einträge und childItems werden unterschieden.
+Zählregeln bleiben unverändert: kein Überspringen unbekannter Einträge und keine
+Teilzahlen als vollständige Bearbeitungszahl. Schließungszählung bleibt unabhängig.
+125 Tests bestanden. Nächster Schritt: Nutzer installiert 0.5.4 und liefert die
+neue detaillierte HistoryFormatError-Warnung; erst danach Schema gezielt prüfen.
+Die eigentliche Formatabweichung ist weiterhin unbekannt und nicht behoben.

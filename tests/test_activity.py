@@ -98,3 +98,39 @@ async def test_status_history_uses_documented_pagination():
     assert rows == [{'id': 1}, {'id': 2}]
     assert client._request.call_args.args[1]['offset'] == 1
     assert 'sortings' not in client._request.call_args.args[1]
+
+
+@pytest.mark.parametrize('fault,expected', [
+    ('date', 'history[].items[].date (str): Invalid history timestamp'),
+    ('child', 'childItems[].date (missing): Missing history timestamp'),
+    ('children_null', 'history[].items[].childItems: expected array, got NoneType'),
+    ('actor_id', 'history[].items[].actor.id (dict): Invalid history user or status identifier'),
+])
+async def test_history_warning_reports_schema_reason_without_private_values(fault, expected, caplog):
+    entry = item()
+    entry['actor']['name'] = 'PRIVATE_NAME'
+    entry['messages'] = ['PRIVATE_MESSAGE']
+    if fault == 'date':
+        entry['date'] = 'PRIVATE_BAD_DATE'
+    elif fault == 'child':
+        entry['childItems'] = [{'messages': ['PRIVATE_CHILD']}]
+    elif fault == 'children_null':
+        entry['childItems'] = None
+    else:
+        entry['actor']['id'] = {'PRIVATE_ID': 'PRIVATE_VALUE'}
+    client = DocBeeClient(AsyncMock(), 'https://example.com', 'PRIVATE_TOKEN')
+    async def request(resource, params):
+        if resource == 'ticket':
+            return page('ticket', [{'id': 987654}])
+        if resource == 'ticketStatus':
+            return page('ticketStatus', [{'id': 9, 'behaviour': 'CLOSED'}])
+        if resource.endswith('/history'):
+            return [{'items': [entry]}]
+        return page('statusChange', [])
+    client._request = request
+    counts = await client.async_get_user_daily_counts(START.isoformat(), END.isoformat(), {'17'})
+    assert counts['modified_today_by_user'] is None
+    assert counts['closed_today_by_user'] == {'17': 0}
+    assert expected in caplog.text
+    assert 'PRIVATE' not in caplog.text
+    assert '987654' not in caplog.text

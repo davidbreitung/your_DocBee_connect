@@ -29,33 +29,41 @@ def identifier(value: Any) -> str:
 def modified_users(payload: Any, start: datetime, end: datetime) -> set[str]:
     """Read the observed grouped-array format; each item's own date is decisive."""
     if not isinstance(payload, list):
-        raise HistoryFormatError("Expected a grouped history array")
+        raise HistoryFormatError(f"history: expected grouped array, got {type(payload).__name__}")
     pending = []
     for group in payload:
         if not isinstance(group, dict) or not isinstance(group.get("items"), list):
-            raise HistoryFormatError("Missing history items")
-        pending.extend(group["items"])
+            raise HistoryFormatError("history[].items: expected array")
+        pending.extend((item, "history[].items[]") for item in group["items"])
     users = set()
     while pending:
-        item = pending.pop()
+        item, path = pending.pop()
         if not isinstance(item, dict):
-            raise HistoryFormatError("Invalid history item")
+            raise HistoryFormatError(f"{path}: expected object, got {type(item).__name__}")
         children = item.get("childItems", [])
         if not isinstance(children, list):
-            raise HistoryFormatError("Invalid child history items")
-        pending.extend(children)
-        date = timestamp(item.get("date"))
+            raise HistoryFormatError(f"{path}.childItems: expected array, got {type(children).__name__}")
+        pending.extend((child, "childItems[]") for child in children)
+        try:
+            date = timestamp(item.get("date"))
+        except HistoryFormatError as err:
+            value_type = type(item["date"]).__name__ if "date" in item else "missing"
+            raise HistoryFormatError(f"{path}.date ({value_type}): {err}") from err
         if not start <= date <= end:
             continue
         actor = item.get("actor")
         if actor is None:
             continue
         if not isinstance(actor, dict):
-            raise HistoryFormatError("Invalid history actor")
+            raise HistoryFormatError(f"{path}.actor: expected object, got {type(actor).__name__}")
         if actor.get("actorType") != "user" or actor.get("userType") != "USER":
             continue
         if item.get("type") in ("INSERT", "UPDATE"):
-            users.add(identifier(actor.get("id")))
+            try:
+                users.add(identifier(actor.get("id")))
+            except HistoryFormatError as err:
+                value_type = type(actor["id"]).__name__ if "id" in actor else "missing"
+                raise HistoryFormatError(f"{path}.actor.id ({value_type}): {err}") from err
     return users
 
 
