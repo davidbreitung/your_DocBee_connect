@@ -130,3 +130,56 @@ async def test_reauthentication(hass):
         assert result['reason'] == 'reauth_successful'
         assert entry.data[CONF_ACCESS_TOKEN] == 'replacement-token'
         await hass.async_block_till_done()
+
+
+async def test_group_migration_preserves_registry_ids_and_names(hass):
+    from custom_components.docbee.groups import group_ids
+
+    entry = MockConfigEntry(domain=DOMAIN, data=DATA, unique_id=DATA[CONF_URL])
+    entry.add_to_hass(hass)
+    devices = dr.async_get(hass)
+    entities = er.async_get(hass)
+    old = {}
+    for kind, suffix in [('central', 'central'), ('user', 'user:1'), ('queue', 'queue:10')]:
+        device = devices.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={(DOMAIN, f'{entry.entry_id}:{suffix}')}, name=f'Old {kind}',
+        )
+        devices.async_update_device(device.id, name_by_user=f'Custom {kind}')
+        key = 'username' if kind == 'user' else ('open_tickets' if kind == 'central' else 'current_tickets')
+        entity = entities.async_get_or_create(
+            'sensor', DOMAIN, f'{entry.entry_id}:{suffix}:{key}',
+            config_entry=entry, device_id=device.id,
+        )
+        entities.async_update_entity(entity.entity_id, name=f'Custom {kind} entity')
+        old[kind] = (device.id, entity.entity_id)
+
+    with patch('custom_components.docbee.api.DocBeeClient.async_get_snapshot', return_value=snapshot()):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        groups = group_ids(entry)
+        assert len(groups) == 3
+        assert {s.title for s in entry.subentries.values()} == {'Zentrale Konfiguration', 'Benutzer', 'Queues'}
+        for kind, (device_id, entity_id) in old.items():
+            device = devices.async_get(device_id)
+            assert device.name_by_user == f'Custom {kind}'
+            assert device.config_entries_subentries[entry.entry_id] == {groups[kind]}
+            entity = entities.async_get(entity_id)
+            assert entity.device_id == device_id
+            assert entity.name == f'Custom {kind} entity'
+            assert entity.config_subentry_id == groups[kind]
+        assert await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+        assert group_ids(entry) == groups
+        assert len(dr.async_entries_for_config_entry(devices, entry.entry_id)) == 4
+
+        entry.runtime_data.async_set_updated_data(DocBeeSnapshot(
+            {**USERS, '3': DocBeeUser('3', 'new')},
+            {'10': DocBeeQueue('10', 'Support'), '11': DocBeeQueue('11', 'New')}, {}, 0, 0,
+        ))
+        await hass.async_block_till_done()
+        for kind, identifier in [('user', '3'), ('queue', '11')]:
+            device = devices.async_get_device(identifiers={(DOMAIN, f'{entry.entry_id}:{kind}:{identifier}')})
+            assert device.config_entries_subentries[entry.entry_id] == {groups[kind]}
+            for entity in er.async_entries_for_device(entities, device.id):
+                assert entity.config_subentry_id == groups[kind]

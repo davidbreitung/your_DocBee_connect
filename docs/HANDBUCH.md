@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.2.2 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.2.3 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -93,13 +93,25 @@ keine fest vorgegebenen IDs. Sie können in der Entitätsverwaltung angepasst we
 
 ### Gruppierung in Home Assistant
 
-Home Assistant bietet keine frei definierbare Geräteklasse „Benutzer“ und
-keine von dieser Integration vorgegebene verschachtelte Geräteansicht.
-„Benutzer“ und „Queues“ werden daher als **Gerätemodelle** ausgewiesen, „Zentrale Konfiguration“
-als separates Gerät. In der Geräteübersicht können die Geräte nach Integration
-und Modell gefiltert werden. Eine eigene visuelle Dashboard-Gruppe kann der
-Benutzer manuell mit den gewünschten Entitäten anlegen; die Integration legt
-keine Dashboard-Karten oder Home-Assistant-Gruppenhelfer an.
+Die Integrationsansicht enthält drei getrennte Konfigurations-Untereinträge:
+
+- **Zentrale Konfiguration:** das zentrale virtuelle Gerät mit Gesamtzählern.
+- **Benutzer:** alle virtuellen Benutzergeräte und ihre Entitäten.
+- **Queues:** alle virtuellen Queue-Geräte und ihre Entitäten.
+
+Die Bereiche lassen sich in der Integrationsansicht aufklappen. Sie gehören
+zur selben DocBee-Verbindung und verwenden denselben Token und Datenabruf.
+Die Zuordnung erfolgt über native Home-Assistant-Untereinträge, nicht nur über
+das Gerätemodell. Die Gerätemodelle bleiben zusätzlich zum Filtern erhalten.
+Es werden keine Dashboard-Karten oder Gruppenhelfer angelegt.
+
+Nach dem Update und Neustart werden bestehende Geräte und Entitäten automatisch
+in ihre Bereiche übernommen. Geräte-IDs, Entitäts-IDs, individuelle Namen und
+bestehende Zuordnungen bleiben erhalten. Auch später neu erkannte Benutzer und
+Queues landen automatisch im passenden Bereich. Die drei Bereiche werden von
+der Integration verwaltet; entfernte Bereiche werden beim nächsten Einrichten
+neu angelegt. Die Darstellung setzt eine Home-Assistant-Oberfläche mit
+Unterstützung für Konfigurations-Untereinträge voraus (Core-Testbasis 2025.6.3).
 
 ### Rolle und Aktiv-Status
 

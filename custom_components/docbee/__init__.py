@@ -9,6 +9,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api import DocBeeClient
 from .coordinator import DocBeeCoordinator
 from .devices import central_device_info
+from .groups import async_prepare_groups
 
 PLATFORMS = [Platform.SENSOR]
 type DocBeeConfigEntry = ConfigEntry[DocBeeCoordinator]
@@ -22,8 +23,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: DocBeeConfigEntry) -> bo
     coordinator = DocBeeCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
+    groups = async_prepare_groups(hass, entry)
     dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id,
+        config_subentry_id=groups["central"],
         entry_type=dr.DeviceEntryType.SERVICE,
         **central_device_info(entry.entry_id),
     )

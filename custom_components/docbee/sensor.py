@@ -9,6 +9,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import DocBeeConfigEntry
 from .coordinator import DocBeeCoordinator
 from .devices import central_device_info, queue_device_info, user_device_info
+from .groups import group_ids
 
 
 async def async_setup_entry(
@@ -17,24 +18,25 @@ async def async_setup_entry(
     """Register central counters and discover user/queue devices on each update."""
     coordinator = entry.runtime_data
     known: set[tuple[str, str]] = set()
+    groups = group_ids(entry)
     async_add_entities([
         DocBeeSensor(coordinator, entry.entry_id, "central", None, key)
         for key in ("open_tickets", "priority_one_tickets")
-    ])
+    ], config_subentry_id=groups["central"])
 
     @callback
     def add_devices() -> None:
-        entities = []
         for kind, records, keys in (
             ("user", coordinator.data.users, ("username", "role", "active", "assigned_tickets")),
             ("queue", coordinator.data.queues, ("current_tickets",)),
         ):
+            entities = []
             for identifier in records:
                 if (kind, identifier) not in known:
                     known.add((kind, identifier))
                     entities.extend(DocBeeSensor(coordinator, entry.entry_id, kind, identifier, key) for key in keys)
-        if entities:
-            async_add_entities(entities)
+            if entities:
+                async_add_entities(entities, config_subentry_id=groups[kind])
 
     add_devices()
     entry.async_on_unload(coordinator.async_add_listener(add_devices))
