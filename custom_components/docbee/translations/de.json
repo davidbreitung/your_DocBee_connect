@@ -63,7 +63,7 @@
         "name": "Bearbeitete Tickets heute"
       },
       "created_today": {
-        "name": "Anzahl neue Tickets heute"
+        "name": "neue Tickets heute"
       },
       "closed_today": {
         "name": "Geschlossene Tickets heute"
