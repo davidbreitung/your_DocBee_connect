@@ -27,7 +27,7 @@ def identifier(value: Any) -> str:
 
 
 def modified_users(payload: Any, start: datetime, end: datetime) -> set[str]:
-    """Read the observed grouped-array format; each item's own date is decisive."""
+    """Count dated actor events; undated child details are not separate actions."""
     if not isinstance(payload, list):
         raise HistoryFormatError(f"history: expected grouped array, got {type(payload).__name__}")
     pending = []
@@ -44,6 +44,19 @@ def modified_users(payload: Any, start: datetime, end: datetime) -> set[str]:
         if not isinstance(children, list):
             raise HistoryFormatError(f"{path}.childItems: expected array, got {type(children).__name__}")
         pending.extend((child, "childItems[]") for child in children)
+        if (
+            path == "childItems[]"
+            and "date" not in item
+            and "actor" not in item
+            and isinstance(item.get("label"), str)
+            and isinstance(item.get("type"), str)
+            and isinstance(item.get("messages"), list)
+        ):
+            # Observed DocBee detail shape: label/type/messages/childItems.
+            # The dated parent already represents the action. Do not invent
+            # an actor or timestamp for the descriptive child. Its own nested
+            # events, if any, are still visited independently.
+            continue
         try:
             date = timestamp(item.get("date"))
         except HistoryFormatError as err:

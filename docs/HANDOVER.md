@@ -1,7 +1,7 @@
 # Übergabe – zuerst lesen
 
 **Stand 17.11.2026.** Projekt: **Your Docbee Connect**, Home-Assistant-Integration
-für DocBee. Runtime **0.5.4** (neuester Codecommit: `git log -1`), Entwicklungsbranch
+für DocBee. Runtime **0.5.5** (neuester Codecommit: `git log -1`), Entwicklungsbranch
 **`main`**, Repository [davidbreitung/your_DocBee_connect](https://github.com/davidbreitung/your_DocBee_connect).
 Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chatimport.
 
@@ -11,7 +11,7 @@ Diese Übergabe ist versioniertes Projektwissen, kein vollständiger Codex-Chati
 2. `AGENTS.md`, diese Datei, `STATUS.md` und `TODO.md` lesen. Bei technischen
    Fragen `ARCHITECTURE.md` und `DECISIONS.md` hinzunehmen.
 3. Linux-/WSL-Testumgebung gemäß [Windows-Anleitung](WINDOWS_SETUP.md) einrichten.
-4. `python -m pytest -q`: bisher **125 Tests grün**, keine DocBee-Zugangsdaten nötig.
+4. `python -m pytest -q`: bisher **133 Tests grün**, keine DocBee-Zugangsdaten nötig.
 5. Noch nicht implementierte Arbeit nicht aus Chat-Zusammenfassungen als fertig
    ableiten. Vorher aktuellen Git-Diff/Log ansehen; keine alten Änderungen neu anwenden.
 
@@ -212,3 +212,19 @@ Teilzahlen als vollständige Bearbeitungszahl. Schließungszählung bleibt unabh
 125 Tests bestanden. Nächster Schritt: Nutzer installiert 0.5.4 und liefert die
 neue detaillierte HistoryFormatError-Warnung; erst danach Schema gezielt prüfen.
 Die eigentliche Formatabweichung ist weiterhin unbekannt und nicht behoben.
+
+## Aktuell: 0.5.5 – undatierte Child-Details korrekt behandeln
+
+Nutzer lieferte eine vollständige Historie: ein datierter Mail-Parser-UPDATE
+enthält childItems mit label/type/messages/childItems, ohne date und actor.
+Dies ist ein beschreibendes Detail der übergeordneten Aktion, kein eigenständiger
+Benutzer-Historieneintrag. Der Parser erkennt nun genau diese Struktur nur unter
+childItems und wertet sie nicht als separate Aktion. Datierte Unterereignisse
+werden weiterhin unabhängig besucht, auch unter solchen Details. Keine Vererbung
+oder Erfindung von Benutzer/Datum. Parent-Aktionen zählen unverändert pro Ticket/
+Benutzer einmal; Mail-Parser und Regeln bleiben ausgeschlossen. Unvollständige
+Root-Ereignisse, Kinder mit eigenem actor ohne Datum und explizit null-Daten
+bleiben Fehler. 133 Tests bestanden, inklusive synthetischer Nachbildung der
+Nutzerstruktur; keine persönlichen Beispielinhalte ins Repository übernommen.
+Nächster Schritt: 0.5.5 installieren und Benutzer-Bearbeitungszähler live prüfen.
+Weitere unbekannte History-Varianten können weiterhin Formatdiagnosen auslösen.

@@ -105,3 +105,13 @@ aber nicht deren Ursache. Statt fehlende Felder zu erraten, den sicheren
 Parsergrund mit statischen Schema-Pfaden und Datentypen protokollieren. Keine
 Rohdaten/IDs, keine Parent-Vererbung ohne Beleg, keine Teilzahlen als Vollzählung.
 Tests prüfen Diagnose und Abwesenheit synthetischer privater Inhalte.
+
+## D31 – Child-Details sind keine separaten Aktionen (0.5.5)
+
+Beleg aus Nutzerhistorie: childItems mit label/type/messages/childItems ohne date
+und actor unter datierter Mail-Parser-Aktion. Nur diese erkennbare Detailstruktur
+unter childItems vom Anspruch einer eigenen datierten Aktion ausnehmen. Parent
+bleibt unverändert zählbar, Details erhalten keinen erfundenen Actor/Zeitstempel.
+Verschachtelte eigenständige Ereignisse weiterhin besuchen. Fehler anderer
+Strukturen bleiben sichtbar. Synthetische Regressionen schützen gegen falsche
+Zurechnung von Automatisierung und gegen Doppelzählung.

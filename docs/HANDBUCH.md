@@ -2,7 +2,7 @@
 
 ## Stand und Voraussetzungen
 
-Version 0.5.4 implementiert die Einrichtung über die Oberfläche, Benutzer- und
+Version 0.5.5 implementiert die Einrichtung über die Oberfläche, Benutzer- und
 Queue-Geräte, Benutzername- und Ticketzähler-Sensoren, regelmäßige Aktualisierung
 und Token-Erneuerung.
 Automatisierte Tests laufen mit Home Assistant Core 2025.6.3 und Python 3.13.
@@ -564,3 +564,14 @@ Strukturpfad und Fehlergrund, etwa `childItems[].date (missing)` oder
 sind mögliche Diagnosen, keine bestätigte Ursache in der Nutzerinstanz.
 Für weitere Untersuchung die vollständige neue Warnung bereitstellen; sie
 enthält keine Ticket-/Benutzer-IDs, Namen, Nachrichten oder Datumswerte.
+
+### Undatierte Details in childItems (0.5.5)
+
+DocBee liefert innerhalb einer datierten Änderung auch beschreibende Untereinträge
+mit `label`, `type`, `messages`, `childItems`, aber ohne `date` und `actor`.
+Ab 0.5.5 werden solche Untereinträge nicht als eigenständige Aktionen behandelt.
+Die übergeordnete Änderung wird wie bisher anhand ihres eigenen Datums und Actors
+gezählt. Automatische Mail-/Regelaktionen werden dadurch keinem Benutzer
+zugerechnet. Mehrere Änderungen desselben Benutzers am selben Ticket ergeben
+weiterhin genau ein bearbeitetes Ticket. Datierte Unterereignisse bleiben separat
+prüfbar; fehlende Daten anderer Ereignisformen werden nicht still übergangen.

@@ -134,3 +134,68 @@ async def test_history_warning_reports_schema_reason_without_private_values(faul
     assert expected in caplog.text
     assert 'PRIVATE' not in caplog.text
     assert '987654' not in caplog.text
+
+
+@pytest.mark.parametrize('actor_type,user_type,user,expected', [
+    (None, None, None, set()),
+    ('rule_engine', None, None, set()),
+    ('user', 'USER', 17, {'17'}),
+])
+def test_undated_child_details_use_parent_action_without_extra_count(actor_type, user_type, user, expected):
+    parent = item(user, actorType=actor_type, userType=user_type)
+    parent['messages'] = []
+    parent['childItems'] = [{
+        'label': 'Example message', 'type': 'INSERT', 'messages': ['Added'],
+        'childItems': [],
+    }]
+    assert modified_users([{'items': [parent, parent]}], START, END) == expected
+
+
+def test_nested_dated_event_is_not_lost_inside_undated_detail():
+    parent = item(None, actorType=None, userType=None)
+    parent['childItems'] = [{
+        'label': 'Example', 'type': 'INSERT', 'messages': [],
+        'childItems': [item(18), item(19, date='2026-11-16T20:00:00Z')],
+    }]
+    assert modified_users([{'items': [parent]}], START, END) == {'18'}
+
+
+@pytest.mark.parametrize('location', ['root', 'child_with_actor', 'child_null_date'])
+def test_detail_exception_does_not_hide_incomplete_events(location):
+    detail = {'label': 'Example', 'type': 'UPDATE', 'messages': [], 'childItems': []}
+    if location == 'root':
+        payload = [{'items': [detail]}]
+    else:
+        if location == 'child_with_actor':
+            detail['actor'] = item()['actor']
+        else:
+            detail['date'] = None
+        parent = item()
+        parent['childItems'] = [detail]
+        payload = [{'items': [parent]}]
+    with pytest.raises(HistoryFormatError):
+        modified_users(payload, START, END)
+
+
+async def test_observed_mail_detail_shape_preserves_full_user_counts():
+    client = DocBeeClient(AsyncMock(), 'https://example.com', 'synthetic-token')
+    mail = item(None, actorType=None, userType=None)
+    mail['messages'] = []
+    mail['childItems'] = [{
+        'label': 'Example incoming message', 'type': 'INSERT',
+        'messages': ['Added'], 'childItems': [],
+    }]
+    async def request(resource, params):
+        if resource == 'ticket':
+            return page('ticket', [{'id': 100}])
+        if resource == 'ticketStatus':
+            return page('ticketStatus', [{'id': 9, 'behaviour': 'CLOSED'}])
+        if resource.endswith('/history'):
+            return [{'date': '2000-01-01T00:00:00Z', 'items': [
+                item(17), mail, item(17), item(None, actorType='rule_engine'), item(17),
+                item(None, kind='INSERT', actorType=None, userType=None),
+            ]}]
+        return page('statusChange', [])
+    client._request = request
+    counts = await client.async_get_user_daily_counts(START.isoformat(), END.isoformat(), {'17', '18'})
+    assert counts['modified_today_by_user'] == {'17': 1, '18': 0}

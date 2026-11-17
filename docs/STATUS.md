@@ -1,6 +1,6 @@
 # Projektstatus
 
-Stand: **17.11.2026**. Laufzeitversion **0.5.4**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
+Stand: **17.11.2026**. Laufzeitversion **0.5.5**. Neu: Benutzer-Tageszähler anhand von Änderungs- und
 Statushistorien. Den exakten neuesten Commit mit `git log -1` prüfen.
 Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
@@ -21,7 +21,7 @@ Vor dieser Erweiterung war `247eb17` der letzte funktionale Stand (0.3.1).
 
 ## Verifikation und Grenzen
 
-Die Suite enthält **125 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
+Die Suite enthält **133 Tests** und bestand zuletzt in dieser Linux-Cloud-Umgebung
 mit Python 3.13, HA Core 2025.6.3 und den Entwicklungsabhängigkeiten. Sie wurde
 bei der Erweiterung um Benutzer-Tageszähler erneut ausgeführt. `git diff --check` wird
 auch für den Dokumentationsstand geprüft. Windows/WSL-Anleitung ist vorbereitet,
@@ -176,3 +176,19 @@ Teilzahlen als vollständige Bearbeitungszahl. Schließungszählung bleibt unabh
 125 Tests bestanden. Nächster Schritt: Nutzer installiert 0.5.4 und liefert die
 neue detaillierte HistoryFormatError-Warnung; erst danach Schema gezielt prüfen.
 Die eigentliche Formatabweichung ist weiterhin unbekannt und nicht behoben.
+
+## Aktuell: 0.5.5 – undatierte Child-Details korrekt behandeln
+
+Nutzer lieferte eine vollständige Historie: ein datierter Mail-Parser-UPDATE
+enthält childItems mit label/type/messages/childItems, ohne date und actor.
+Dies ist ein beschreibendes Detail der übergeordneten Aktion, kein eigenständiger
+Benutzer-Historieneintrag. Der Parser erkennt nun genau diese Struktur nur unter
+childItems und wertet sie nicht als separate Aktion. Datierte Unterereignisse
+werden weiterhin unabhängig besucht, auch unter solchen Details. Keine Vererbung
+oder Erfindung von Benutzer/Datum. Parent-Aktionen zählen unverändert pro Ticket/
+Benutzer einmal; Mail-Parser und Regeln bleiben ausgeschlossen. Unvollständige
+Root-Ereignisse, Kinder mit eigenem actor ohne Datum und explizit null-Daten
+bleiben Fehler. 133 Tests bestanden, inklusive synthetischer Nachbildung der
+Nutzerstruktur; keine persönlichen Beispielinhalte ins Repository übernommen.
+Nächster Schritt: 0.5.5 installieren und Benutzer-Bearbeitungszähler live prüfen.
+Weitere unbekannte History-Varianten können weiterhin Formatdiagnosen auslösen.

@@ -8,5 +8,5 @@
   "issue_tracker": "https://github.com/davidbreitung/your_DocBee_connect/issues",
   "iot_class": "cloud_polling",
   "requirements": [],
-  "version": "0.5.4"
+  "version": "0.5.5"
 }
